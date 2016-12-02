@@ -8,16 +8,22 @@ public class Map : MonoBehaviour {
 	private GameObject unitsContainer;
 	private Unit selectedUnit;
 
-	// Use this for initialization
 	void Start () {
 		this.Width = ScalingFactor * 4;
 		this.Height = ScalingFactor * 3;
 		unitsContainer = transform.Find ("Units").gameObject;
 	}
 	
-	// Update is called once per frame
 	void Update () {
-	
+	}
+
+	void OnMouseDown() {
+		if (selectedUnit) {
+			// move the unit to the new position
+			var mousePos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
+			selectedUnit.transform.localPosition = RoundPosition(mousePos - transform.position);
+			DeselectCurrentUnit ();
+		}
 	}
 
 	public bool IsLegalPosition(Vector3 pos) {
@@ -36,11 +42,20 @@ public class Map : MonoBehaviour {
 	}
 
 	public void SelectUnit(Unit unit) {
+		print ("selecting");
 		this.selectedUnit = unit;
 		unit.OnSelected ();
 	}
 
 	public void DeselectCurrentUnit() {
 		selectedUnit.OnDeselected ();
+		selectedUnit = null;
+	}
+
+	public Vector3 RoundPosition(Vector3 pos) {
+		return new Vector3 {
+			x = Mathf.Round(pos.x / ScalingFactor) * ScalingFactor,
+			y = Mathf.Round(pos.y / ScalingFactor) * ScalingFactor
+		};
 	}
 }

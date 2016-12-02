@@ -14,22 +14,21 @@ public class Unit : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		if (Input.GetMouseButtonDown (0)) {
-			if (!selected) {
-				map.SelectUnit (this);
-			} else {
-				map.DeselectCurrentUnit ();
-			}
-		}
 	}
 
 	public void OnSelected() {
 		this.selected = true;
+		print ("selected");
 		shipSprite.Translate (new Vector3(0, 0.1f));
 	}
 
 	public void OnDeselected() {
 		this.selected = false;
 		shipSprite.Translate (new Vector3(0, -0.1f));
+	}
+
+	void OnMouseDown() {
+		print ("mouse");
+		map.SelectUnit (this);
 	}
 }
