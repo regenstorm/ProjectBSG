@@ -8,9 +8,11 @@ public class Map : MonoBehaviour {
 	public int Width;
 	public int Height;
 	public GameObject MoveOverlayPrefab;
+	public GameObject gridCellPrefab;
 
 	private Transform unitsContainer;
 	private Transform overlayContainer;
+	private Transform gridContainer;
 	private Unit selectedUnit;
 
 	void Start () {
@@ -18,11 +20,27 @@ public class Map : MonoBehaviour {
 		this.Height = ScalingFactor * 10;
 		unitsContainer = transform.Find ("Units");
 		overlayContainer = transform.Find ("Overlay");
+		gridContainer = transform.Find ("Grid");
 
+		FillColliderBox ();
+		GenerateGrid ();
+	}
+
+	void FillColliderBox() {
 		// This collider is for mouse click detection
-//		var collider = GetComponent<BoxCollider2D> ();
-//		collider.offset = new Vector2 (this.Width / 2 - 1, -this.Height / 2 + 1);
-//		collider.size = new Vector2 (this.Width, this.Height);
+		var collider = GetComponent<BoxCollider> ();
+		collider.center = new Vector2 (this.Width / 2 - 1, -this.Height / 2 + 1);
+		collider.size = new Vector2 (this.Width, this.Height);
+	}
+
+	void GenerateGrid() {
+		for (int x = 0; x < Width; x += ScalingFactor) {
+			for (int y = 0; y > -Height; y -= ScalingFactor) {
+				if (x % 4 == (y % 4 == 0 ? 0 : 2)) {
+					Instantiate (gridCellPrefab, new Vector3(x, y), Quaternion.identity, gridContainer);
+				}
+			}
+		}
 	}
 
 	void Update () {
