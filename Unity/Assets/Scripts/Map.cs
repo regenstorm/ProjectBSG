@@ -2,13 +2,14 @@
 using System.Collections;
 
 public class Map : MonoBehaviour {
-	public const int ScalingFactor = 2;
-	public const int Width = 4;
-	public const int Height = 3;
+	public int ScalingFactor = 2;
+	public int Width;
+	public int Height;
 
 	// Use this for initialization
 	void Start () {
-	
+		this.Width = ScalingFactor * 4;
+		this.Height = ScalingFactor * 3;
 	}
 	
 	// Update is called once per frame
@@ -16,23 +17,8 @@ public class Map : MonoBehaviour {
 	
 	}
 
-	public Position ScreenToMapPosition(Vector3 screen) {
-		// lossy conversion
-		return new Position {
-			row = (int) (screen.y / -ScalingFactor),
-			column = (int) (screen.x / ScalingFactor)
-		};
-	}
-
-	public Vector3 MapToScreenPosition(Position pos) {
-		return new Vector3 {
-			x = pos.column * ScalingFactor, 
-			y = pos.row * -ScalingFactor
-		};
-	}
-
-	public bool IsLegalPosition(Position pos) {
-		return pos.column >= 0 && pos.column < Width 
-			&& pos.row >= 0 && pos.row < Height;
+	public bool IsLegalPosition(Vector3 pos) {
+		return pos.x >= 0 && pos.x < Width 
+			&& pos.y <= 0 && pos.y > -Height;
 	}
 }

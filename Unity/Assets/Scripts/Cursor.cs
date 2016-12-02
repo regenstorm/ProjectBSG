@@ -2,7 +2,6 @@
 using System.Collections;
 
 public class Cursor : MonoBehaviour {
-	public Position position = new Position { row = 0 , column = 0 };
 	private Map map;
 
 	// Use this for initialization
@@ -12,30 +11,33 @@ public class Cursor : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		var offsetRow = 0;
-		var offsetColumn = 0;
+		var offsetY = 0;
+		var offsetX = 0;
+		var moveStep = map.ScalingFactor;
 
 		if (Input.GetKeyDown (KeyCode.UpArrow)) {
-			offsetRow = -1;
+			offsetY = moveStep;
 		}
 
 		if (Input.GetKeyDown (KeyCode.DownArrow)) {
-			offsetRow = 1;
+			offsetY = -moveStep;
 		}
 			
 		if (Input.GetKeyDown (KeyCode.LeftArrow)) {
-			offsetColumn = -1;
+			offsetX = -moveStep;
 		}
 
 		if (Input.GetKeyDown (KeyCode.RightArrow)) {
-			offsetColumn = 1;
+			offsetX = moveStep;
 		}
 
-		var newPos = position.translate (offsetRow, offsetColumn);
+		var newPos = new Vector3 {
+			x = this.transform.localPosition.x + offsetX,
+			y = this.transform.localPosition.y + offsetY,
+		};
 
-		if (!(offsetRow == 0 && offsetColumn == 0) && map.IsLegalPosition (newPos)) {
-			this.transform.position = map.MapToScreenPosition (newPos);
-			this.position = newPos;
+		if (!(offsetY == 0 && offsetX == 0) && map.IsLegalPosition (newPos)) {
+			this.transform.localPosition = newPos;
 		}
 	}
 }
