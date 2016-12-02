@@ -2,6 +2,8 @@
 using System.Collections;
 
 public class Unit : MonoBehaviour {
+	public int MoveRange = 2;
+
 	Transform shipSprite;
 	Map map;
 	bool selected = false;

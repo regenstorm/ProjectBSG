@@ -1,17 +1,22 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Map : MonoBehaviour {
 	public int ScalingFactor = 2;
 	public int Width;
 	public int Height;
-	private GameObject unitsContainer;
+	public GameObject MoveOverlayPrefab;
+
+	private Transform unitsContainer;
+	private Transform overlayContainer;
 	private Unit selectedUnit;
 
 	void Start () {
 		this.Width = ScalingFactor * 4;
 		this.Height = ScalingFactor * 3;
-		unitsContainer = transform.Find ("Units").gameObject;
+		unitsContainer = transform.Find ("Units");
+		overlayContainer = transform.Find ("Overlay");
 	}
 	
 	void Update () {
@@ -32,7 +37,7 @@ public class Map : MonoBehaviour {
 	}
 
 	public Unit UnitAtPosition(Vector3 pos) {
-		foreach (Transform child in unitsContainer.transform) {
+		foreach (Transform child in unitsContainer) {
 			if (child.localPosition == pos) {
 				return child.gameObject.GetComponent<Unit>();
 			}
@@ -42,14 +47,15 @@ public class Map : MonoBehaviour {
 	}
 
 	public void SelectUnit(Unit unit) {
-		print ("selecting");
 		this.selectedUnit = unit;
 		unit.OnSelected ();
+		DrawLegalMovesOverlay ();
 	}
 
 	public void DeselectCurrentUnit() {
 		selectedUnit.OnDeselected ();
 		selectedUnit = null;
+		ClearLegalMovesOverlay ();
 	}
 
 	public Vector3 RoundPosition(Vector3 pos) {
@@ -57,5 +63,36 @@ public class Map : MonoBehaviour {
 			x = Mathf.Round(pos.x / ScalingFactor) * ScalingFactor,
 			y = Mathf.Round(pos.y / ScalingFactor) * ScalingFactor
 		};
+	}
+
+	public void DrawLegalMovesOverlay() {
+		var moves = LegalMoves (selectedUnit);
+		foreach (Vector3 move in moves) {
+			Instantiate (MoveOverlayPrefab, move, Quaternion.identity, overlayContainer);
+		}
+	}
+
+	public void ClearLegalMovesOverlay() {
+		foreach (Transform child in overlayContainer) {
+			Object.Destroy (child.gameObject);
+		}
+	}
+
+	public List<Vector3> LegalMoves(Unit unit) {
+		List<Vector3> moves = new List<Vector3> ();
+		// FIXME: simplistic algo, very likely wrong
+		for (int i = -unit.MoveRange; i <= unit.MoveRange; i++) {
+			for (int k = -unit.MoveRange; k <= unit.MoveRange; k++) {
+				var x = i * ScalingFactor;
+				var y = k * ScalingFactor;
+				var step = unit.transform.localPosition + new Vector3 (x, y);
+
+				if (!(i == 0 && k == 0) && IsLegalPosition(step)) {
+					moves.Add (step);
+				}
+			}
+		}
+
+		return moves;
 	}
 }
