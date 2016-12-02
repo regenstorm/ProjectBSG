@@ -52,6 +52,10 @@ public class Map : MonoBehaviour {
 	}
 
 	public void SelectUnit(Unit unit) {
+		if (this.selectedUnit) {
+			DeselectCurrentUnit ();
+		}
+
 		this.selectedUnit = unit;
 		unit.OnSelected ();
 		DrawLegalMovesOverlay ();
