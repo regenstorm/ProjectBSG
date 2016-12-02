@@ -20,7 +20,6 @@ public class Unit : MonoBehaviour {
 
 	public void OnSelected() {
 		this.selected = true;
-		print ("selected");
 		shipSprite.Translate (new Vector3(0, 0.1f));
 	}
 
@@ -30,7 +29,6 @@ public class Unit : MonoBehaviour {
 	}
 
 	void OnMouseDown() {
-		print ("mouse");
 		map.SelectUnit (this);
 	}
 }
