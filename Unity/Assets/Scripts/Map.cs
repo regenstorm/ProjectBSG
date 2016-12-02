@@ -23,10 +23,15 @@ public class Map : MonoBehaviour {
 	}
 
 	void OnMouseDown() {
+		var mousePos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
+
 		if (selectedUnit) {
 			// move the unit to the new position
-			var mousePos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
-			selectedUnit.transform.localPosition = RoundPosition(mousePos - transform.position);
+			var newPos = RoundPosition(mousePos - transform.position);
+			if (UnitCanMoveToPosition (selectedUnit, newPos)) {
+				selectedUnit.transform.localPosition = newPos;
+			}
+
 			DeselectCurrentUnit ();
 		}
 	}
@@ -94,5 +99,10 @@ public class Map : MonoBehaviour {
 		}
 
 		return moves;
+	}
+
+	public bool UnitCanMoveToPosition(Unit unit, Vector3 pos) {
+		// FIXME: slow, requires recalculating legal moves list every time
+		return LegalMoves (unit).Contains(pos);
 	}
 }
