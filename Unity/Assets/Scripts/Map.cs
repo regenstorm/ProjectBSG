@@ -8,6 +8,7 @@ public class Map : MonoBehaviour {
 	public int Width;
 	public int Height;
 	public GameObject MoveOverlayPrefab;
+	public GameObject AttackOverlayPrefab;
 	public GameObject gridCellPrefab;
 
 	private Transform unitsContainer;
@@ -111,9 +112,23 @@ public class Map : MonoBehaviour {
 
 	public void DrawLegalMovesOverlay() {
 		var moves = LegalMoves (selectedUnit);
-		foreach (Vector3 move in moves) {
-			Instantiate (MoveOverlayPrefab, move, Quaternion.identity, overlayContainer);
+		foreach (Vector3 cell in moves) {
+			Instantiate (MoveOverlayPrefab, cell, Quaternion.identity, overlayContainer);
 		}
+
+		var attackMoves = LegalAttackMoves (selectedUnit);
+		var attackOverlayCells = new HashSet<Vector3> (attackMoves).Except(new HashSet<Vector3>(moves));
+		foreach (Vector3 cell in attackOverlayCells) {
+			Instantiate (AttackOverlayPrefab, cell, Quaternion.identity, overlayContainer);
+		}
+
+//		Alternative implementation, not sure which is faster.
+//
+//		foreach (Vector3 cell in attackMoves) {
+//			if (!moves.Contains(cell)) {
+//				//Instantiate (AttackOverlayPrefab, cell, Quaternion.identity, overlayContainer);
+//			}
+//		}
 	}
 
 	public void ClearLegalMovesOverlay() {
@@ -122,16 +137,38 @@ public class Map : MonoBehaviour {
 		}
 	}
 
-	public IEnumerable<Vector3> LegalMoves(Unit unit) {
-		var distances = BFS<int>(
+	public bool LegalMoveInclusionPredicate(Vector3 current, Vector3 neighbor) {
+		return UnitAtPosition (neighbor) == null;
+	}
+
+	public InclusionPredicate GetLegalAttackInclusionPredicate(Unit unit) {
+		return (current, neighbor) => {
+			var other = UnitAtPosition (neighbor);
+			return other == null || !GameController.Instance.FriendsWith(unit.Faction, other.Faction);
+			return true; // other == null || GameController.Instance.FriendsWith(unit.Faction, other.Faction);
+		};
+	}
+
+	private Dictionary<Vector3, int> DistancesToUnit(Unit unit, InclusionPredicate inclusionPredicate) {
+		// FIXME: cache this every turn
+		return BFS<int>(
 			unit.transform.localPosition,
 			0,
 			_ => false,
+			inclusionPredicate,
 			(current, neighbor, acc) => {
 				acc[neighbor] = 1 + acc[current];
 			});
+	}
 
-		return from pair in distances
+	public IEnumerable<Vector3> LegalAttackMoves(Unit unit) {
+		return from pair in DistancesToUnit (unit, GetLegalAttackInclusionPredicate(unit))
+				where pair.Value <= unit.MoveRange + unit.AttackRange && pair.Value > 0
+			select pair.Key;
+	}
+
+	public IEnumerable<Vector3> LegalMoves(Unit unit) {
+		return from pair in DistancesToUnit(unit, LegalMoveInclusionPredicate)
 		       where pair.Value <= unit.MoveRange && pair.Value > 0
 		       select pair.Key;
 	}
@@ -141,6 +178,9 @@ public class Map : MonoBehaviour {
 			unit.transform.localPosition,
 			unit.transform.localPosition,
 			current => current.Equals(pos),
+			(current, neighbor) => {
+				return UnitAtPosition(neighbor) == null;
+			},
 			(current, neighbor, acc) => {
 				acc[neighbor] = current;
 			});
@@ -160,8 +200,6 @@ public class Map : MonoBehaviour {
 			}
 		}
 
-		print (string.Join(",", path.Select(v => v.ToString()).ToArray()));
-
 		return path;
 	}
 
@@ -172,8 +210,14 @@ public class Map : MonoBehaviour {
 
 	public delegate void NeighborHandler<T>(Vector3 current, Vector3 neighbor, Dictionary<Vector3, T> container);
 	public delegate bool StoppingPredicate(Vector3 current);
+	public delegate bool InclusionPredicate (Vector3 current, Vector3 neighbor);
 
-	public Dictionary<Vector3, T> BFS<T>(Vector3 start, T initialValue, StoppingPredicate stoppingPredicate, NeighborHandler<T> neighborHandler) {
+	public Dictionary<Vector3, T> BFS<T>(
+			Vector3 start,
+			T initialValue,
+			StoppingPredicate stoppingPredicate,
+			InclusionPredicate inclusionPredicate,
+			NeighborHandler<T> neighborHandler) {
 		Queue<Vector3> frontier = new Queue<Vector3> ();
 		var accumulator = new Dictionary<Vector3, T> ();
 
@@ -187,7 +231,7 @@ public class Map : MonoBehaviour {
 				break;
 			}
 
-			foreach (var neighbor in neighborPositions(current)) {
+			foreach (var neighbor in neighborPositions(current, inclusionPredicate)) {
 				if (!accumulator.ContainsKey(neighbor)) {
 					frontier.Enqueue (neighbor);
 					neighborHandler(current, neighbor, accumulator);
@@ -203,7 +247,7 @@ public class Map : MonoBehaviour {
 		return LegalMoves (unit).Contains(pos);
 	}
 
-	IEnumerable<Vector3> neighborPositions(Vector3 pos) {
+	IEnumerable<Vector3> neighborPositions(Vector3 pos, InclusionPredicate inclusionPredicate) {
 		for (int i = -1; i <= 1; i++) {
 			for (int j = -1; j <= 1; j++) {
 				var neighbor = new Vector3 {
@@ -211,7 +255,7 @@ public class Map : MonoBehaviour {
 					y = j * -ScalingFactor
 				} + pos;
 
-				if (i != j && i != -j && IsLegalPosition(neighbor)) {
+				if (i != j && i != -j && IsLegalPosition(neighbor) && inclusionPredicate(pos, neighbor)) {
 					yield return neighbor;
 				}
 			}

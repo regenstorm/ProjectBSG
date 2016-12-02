@@ -3,6 +3,8 @@ using System.Collections;
 
 public class Unit : MonoBehaviour {
 	public int MoveRange = 2;
+	public int AttackRange = 1;
+	public GameController.Faction Faction = GameController.Faction.SYNTH;
 
 	Transform shipSprite;
 	Map map;
