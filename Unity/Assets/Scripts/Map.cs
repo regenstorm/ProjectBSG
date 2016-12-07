@@ -10,12 +10,15 @@ public class Map : MonoBehaviour {
 	public GameObject MoveOverlayPrefab;
 	public GameObject AttackOverlayPrefab;
 	public GameObject gridCellPrefab;
+	public GameObject AttackIndicatorPrefab;
 
 	private Transform unitsContainer;
 	private Transform overlayContainer;
 	private Transform gridContainer;
 	private Unit selectedUnit;
 	private PathFinder<Vector3> pathFinder;
+
+	private GameState gameState = GameState.IDLE;
 
 	void Start () {
 		pathFinder = new PathFinder<Vector3> ();
@@ -52,13 +55,30 @@ public class Map : MonoBehaviour {
 
 	void OnMouseDown() {
 		var mousePos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
+		var clickedTile = RoundPosition (mousePos - transform.position);
+		var unit = UnitAtPosition(clickedTile);
 
 		if (selectedUnit) {
-			// move the unit to the new position
-			var newPos = RoundPosition(mousePos - transform.position);
-			ClearLegalMovesOverlay ();
-			MoveUnit (selectedUnit, newPos);
+			if (gameState == GameState.MOVE_TILE_SELECTION) {
+				MoveUnit (selectedUnit, clickedTile);
+			}
+
+			if (gameState == GameState.ATTACK_TILE_SELECTION) {
+				// check if a valid attack target has been chosen
+				if (unit && UnitIsLegalAttackTarget (unit)) {
+					selectedUnit.Fight (unit);
+
+					DeselectCurrentUnit ();
+					gameState = GameState.IDLE;
+				}
+			}
+		} else if (unit) {
+			SelectUnit (unit);
 		}
+	}
+
+	private bool UnitIsLegalAttackTarget(Unit other) {
+		return !other.IsFriendlyWith (selectedUnit) && EnemiesInRange(selectedUnit).Contains(other);
 	}
 
 	public bool IsLegalPosition(Vector3 pos) {
@@ -84,6 +104,7 @@ public class Map : MonoBehaviour {
 		this.selectedUnit = unit;
 		unit.OnSelected ();
 		DrawLegalMovesOverlay ();
+		gameState = GameState.MOVE_TILE_SELECTION;
 	}
 
 	public void DeselectCurrentUnit() {
@@ -93,8 +114,14 @@ public class Map : MonoBehaviour {
 	}
 
 	public void MoveUnit(Unit unit, Vector3 pos) {
+		ClearLegalMovesOverlay ();
+
 		if (UnitCanMoveToPosition (selectedUnit, pos)) {
-			StartCoroutine (MoveUnitInSequence(unit, pathFinder.Path (selectedUnit.transform.localPosition, pos, this.MoveableNeighbors)));
+			gameState = GameState.MOVING;
+			StartCoroutine (MoveUnitInSequence (unit, pathFinder.Path (selectedUnit.transform.localPosition, pos, this.MoveableNeighbors)));
+		} else {
+			DeselectCurrentUnit ();
+			gameState = GameState.IDLE;
 		}
 	}
 
@@ -109,8 +136,11 @@ public class Map : MonoBehaviour {
 		// FIXME: using Count() could be slow
 		if (EnemiesInRange (unit).Count () > 0) {
 			DrawLegalAttacksOverlay ();
+			DrawAttackTargetIndicators ();
+			gameState = GameState.ATTACK_TILE_SELECTION;
 		} else {
 			DeselectCurrentUnit ();
+			gameState = GameState.IDLE;
 		}
 	}
 
@@ -126,6 +156,13 @@ public class Map : MonoBehaviour {
 
 		foreach (Vector3 cell in cells) {
 			Instantiate (AttackOverlayPrefab, cell, Quaternion.identity, overlayContainer);
+		}
+	}
+
+	private void DrawAttackTargetIndicators() {
+		foreach (var unit in EnemiesInRange(selectedUnit)) {
+			var location = unit.transform.localPosition;
+			Instantiate (AttackIndicatorPrefab, location, Quaternion.identity, overlayContainer);
 		}
 	}
 
@@ -157,16 +194,10 @@ public class Map : MonoBehaviour {
 	}
 
 	private IEnumerable<Unit> EnemiesInRange(Unit unit) {
-		var enemies = new List<Unit> ();
-
-		foreach (Vector3 cell in LegalStationaryAttackMoves(unit)) {
-			var other = UnitAtPosition (cell);
-			if (other != null && !GameController.Instance.FriendsWith(other.Faction, unit.Faction)) {
-				enemies.Add (other);
-			}
-		}
-
-		return enemies;
+		return (from cell in LegalStationaryAttackMoves (unit)
+		  let other = UnitAtPosition (cell)
+		  where other != null && !GameController.Instance.FriendsWith (other.Faction, unit.Faction)
+		  select other);
 	}
 
 	public bool UnitCanMoveToPosition(Unit unit, Vector3 pos) {
@@ -205,7 +236,7 @@ public class Map : MonoBehaviour {
 
 	public IEnumerable<Vector3> LegalMoves(Unit unit) {
 		return from pair in pathFinder.DistancesToNode(unit.transform.localPosition, this.MoveableNeighbors)
-				where pair.Value <= unit.MoveRange && pair.Value > 0
+				where pair.Value <= unit.MoveRange
 			select pair.Key;
 	}
 

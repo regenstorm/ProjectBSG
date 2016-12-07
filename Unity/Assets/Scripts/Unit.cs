@@ -4,33 +4,44 @@ using System.Collections;
 public class Unit : MonoBehaviour {
 	public int MoveRange = 2;
 	public int AttackRange = 1;
-	public GameController.Faction Faction = GameController.Faction.SYNTH;
+	public int Attack = 20;
+	public int Defense = 10;
+	public int Health = 50;
+	public int MaxHealth = 50;
+	public Faction Faction = Faction.SYNTH;
 
 	Transform shipSprite;
-	Map map;
-	bool selected = false;
+//	Map map;
 
 	// Use this for initialization
 	void Start () {
 		shipSprite = transform.FindChild ("ship_sprite");
-		map = GameObject.Find ("BattleGround").GetComponent<Map> ();
+//		map = GameObject.Find ("BattleGround").GetComponent<Map> ();
 	}
-	
+
 	// Update is called once per frame
 	void Update () {
 	}
 
 	public void OnSelected() {
-		this.selected = true;
 		shipSprite.Translate (new Vector3(0, 0.1f));
 	}
 
 	public void OnDeselected() {
-		this.selected = false;
 		shipSprite.Translate (new Vector3(0, -0.1f));
 	}
 
-	void OnMouseDown() {
-		map.SelectUnit (this);
+	public void Fight(Unit other) {
+		// FIXME: need a way to communicate battle outcome with the GameController (to display stats, messages, etc.)
+		var damage = Mathf.RoundToInt((Attack - other.Defense) * Random.Range (0.5f, 1.5f));
+		other.Health -= damage;
+
+		if (other.Health <= 0) {
+			Object.Destroy (other);
+		}
+	}
+
+	public bool IsFriendlyWith(Unit other) {
+		return Faction == other.Faction;
 	}
 }
