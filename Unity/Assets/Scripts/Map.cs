@@ -56,9 +56,8 @@ public class Map : MonoBehaviour {
 		if (selectedUnit) {
 			// move the unit to the new position
 			var newPos = RoundPosition(mousePos - transform.position);
+			ClearLegalMovesOverlay ();
 			MoveUnit (selectedUnit, newPos);
-
-			DeselectCurrentUnit ();
 		}
 	}
 
@@ -100,9 +99,18 @@ public class Map : MonoBehaviour {
 	}
 
 	private IEnumerator MoveUnitInSequence(Unit unit, IEnumerable<Vector3> path) {
+		// FIXME: Do some kind of movement animation here
+		// https://docs.unity3d.com/ScriptReference/Vector3.MoveTowards.html
 		foreach (var step in path) {
 			unit.transform.localPosition = step;
 			yield return new WaitForSeconds(0.2f);
+		}
+
+		// FIXME: using Count() could be slow
+		if (EnemiesInRange (unit).Count () > 0) {
+			DrawLegalAttacksOverlay ();
+		} else {
+			DeselectCurrentUnit ();
 		}
 	}
 
@@ -111,6 +119,14 @@ public class Map : MonoBehaviour {
 			x = Mathf.Round(pos.x / ScalingFactor) * ScalingFactor,
 			y = Mathf.Round(pos.y / ScalingFactor) * ScalingFactor
 		};
+	}
+
+	public void DrawLegalAttacksOverlay() {
+		var cells = LegalStationaryAttackMoves (selectedUnit);
+
+		foreach (Vector3 cell in cells) {
+			Instantiate (AttackOverlayPrefab, cell, Quaternion.identity, overlayContainer);
+		}
 	}
 
 	public void DrawLegalMovesOverlay() {
@@ -140,10 +156,17 @@ public class Map : MonoBehaviour {
 		}
 	}
 
+	private IEnumerable<Unit> EnemiesInRange(Unit unit) {
+		var enemies = new List<Unit> ();
 
+		foreach (Vector3 cell in LegalStationaryAttackMoves(unit)) {
+			var other = UnitAtPosition (cell);
+			if (other != null && !GameController.Instance.FriendsWith(other.Faction, unit.Faction)) {
+				enemies.Add (other);
 			}
 		}
 
+		return enemies;
 	}
 
 	public bool UnitCanMoveToPosition(Unit unit, Vector3 pos) {
