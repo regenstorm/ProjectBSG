@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.UI;
 
 public class Map : MonoBehaviour {
 	public int ScalingFactor = 2;
@@ -20,6 +21,23 @@ public class Map : MonoBehaviour {
 	private PathFinder<Vector3> pathFinder;
 
 	private GameState gameState = GameState.IDLE;
+	private Faction currentFaction = Faction.SYNTH;
+
+	Faction NextFaction() {
+		return currentFaction == Faction.SYNTH ? Faction.HUMAN : Faction.SYNTH;
+	}
+
+	private void NextTurn() {
+		currentFaction = NextFaction();
+		foreach (var unit in UnitsOfFaction(currentFaction)) {
+			unit.ResetTurn ();
+		}
+		UpdateFactionIndicator ();
+	}
+
+	private void UpdateFactionIndicator() {
+		GameObject.Find ("FactionIndicator").GetComponent<Text>().text = currentFaction.ToString();
+	}
 
 	void Start () {
 		pathFinder = new PathFinder<Vector3> ();
@@ -33,6 +51,7 @@ public class Map : MonoBehaviour {
 		FillColliderBox ();
 		GenerateGrid ();
 		PlaceUnits ();
+		UpdateFactionIndicator ();
 	}
 
 	void PlaceUnits ()
@@ -103,9 +122,12 @@ public class Map : MonoBehaviour {
 		selectedUnit.EndTurn ();
 		DeselectCurrentUnit ();
 		gameState = GameState.IDLE;
-		print ("end selected unit turn");
 
 		// FIXME: check if the battle is over or player's turn is done
+		var allUnitsUsed = UnitsOfFaction(currentFaction).All (unit => unit.Dirty);
+		if (allUnitsUsed) {
+			NextTurn ();
+		}
 	}
 
 	private bool UnitIsLegalAttackTarget(Unit other) {
@@ -117,17 +139,29 @@ public class Map : MonoBehaviour {
 			&& pos.y <= 0 && pos.y > -Height;
 	}
 
-	public Unit UnitAtPosition(Vector3 pos) {
+	private IEnumerable<Unit> AllUnits() {
+		var units = new List<Unit> ();
 		foreach (Transform child in unitsContainer) {
-			if (child.localPosition == pos) {
-				return child.gameObject.GetComponent<Unit>();
-			}
+			units.Add (child.GetComponent<Unit> ());
 		}
+		return units;
+	}
 
-		return null;
+	private IEnumerable<Unit> UnitsOfFaction(Faction faction) {
+		return from unit in AllUnits ()
+		       where unit.Faction == faction
+		       select unit;
+	}
+
+	public Unit UnitAtPosition(Vector3 pos) {
+		return AllUnits ().FirstOrDefault (unit => unit.transform.localPosition == pos);
 	}
 
 	public void SelectUnit(Unit unit) {
+		if (unit.Faction != currentFaction || unit.Dirty) {
+			return;
+		}
+
 		if (this.selectedUnit) {
 			DeselectCurrentUnit ();
 		}

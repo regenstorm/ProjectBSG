@@ -67,4 +67,10 @@ public class Unit : MonoBehaviour {
 		var grayTint = new Color (0.5f, 0.5f, 0.5f);
 		shipSprite.GetComponent<SpriteRenderer> ().color = grayTint;
 	}
+
+	public void ResetTurn() {
+		this.Dirty = false;
+		var noTint = new Color (1, 1, 1);
+		shipSprite.GetComponent<SpriteRenderer> ().color = noTint;
+	}
 }
