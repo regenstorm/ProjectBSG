@@ -48,8 +48,8 @@ public class Map : MonoBehaviour {
 	void Start () {
 		pathFinder = new PathFinder<Vector3> ();
 
-		this.Width = ScalingFactor * 15;
-		this.Height = ScalingFactor * 10;
+		this.Width = ScalingFactor * 8;
+		this.Height = ScalingFactor * 8;
 		unitsContainer = transform.Find ("Units");
 		overlayContainer = transform.Find ("Overlay");
 		gridContainer = transform.Find ("Grid");
@@ -66,12 +66,20 @@ public class Map : MonoBehaviour {
 		// In fact, they're like an array of 2-tuples splitted into 2 arrays.
 		var factions = new Faction[] {
 			Faction.HUMAN,
-			Faction.SYNTH
+			Faction.HUMAN,
+			Faction.HUMAN,
+			Faction.SYNTH,
+			Faction.SYNTH,
+			Faction.SYNTH,
 		};
 
 		var locations = new Vector3[] {
 			new Vector3(0, 0),
+			new Vector3(2, 0),
 			new Vector3(4, 0),
+			new Vector3(10, 0),
+			new Vector3(6, -4),
+			new Vector3(2, -6),
 		};
 
 		for (var i = 0; i < locations.Length; i++) {
