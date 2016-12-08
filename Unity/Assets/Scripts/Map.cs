@@ -27,6 +27,10 @@ public class Map : MonoBehaviour {
 		return currentFaction == Faction.SYNTH ? Faction.HUMAN : Faction.SYNTH;
 	}
 
+	public static Color FactionColor(Faction faction) {
+		return faction == Faction.SYNTH ? Color.blue : Color.red;
+	}
+
 	private void NextTurn() {
 		currentFaction = NextFaction();
 		foreach (var unit in UnitsOfFaction(currentFaction)) {
@@ -36,7 +40,9 @@ public class Map : MonoBehaviour {
 	}
 
 	private void UpdateFactionIndicator() {
-		GameObject.Find ("FactionIndicator").GetComponent<Text>().text = currentFaction.ToString();
+		var indicator = GameObject.Find ("FactionIndicator").GetComponent<Text> ();
+		indicator.text = currentFaction.ToString();
+		indicator.color = FactionColor (currentFaction);
 	}
 
 	void Start () {

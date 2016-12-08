@@ -3,17 +3,19 @@ using System.Collections;
 using UnityEngine.UI;
 
 public class Unit : MonoBehaviour {
-	public int MoveRange = 2;
-	public int AttackRange = 1;
-	public int Attack = 20;
-	public int Defense = 10;
-	public int Health = 50;
-	public int MaxHealth = 50;
-	public Faction Faction = Faction.SYNTH;
+	public int MoveRange;
+	public int AttackRange;
+	public int Attack;
+	public int Defense;
+	public int Health;
+	public int MaxHealth;
+	public Faction Faction;
 	public bool Dirty = false;
 
 	Transform shipSprite;
 	Text healthIndicator;
+	Color defaultTint;
+
 //	Map map;
 
 	// Use this for initialization
@@ -25,6 +27,8 @@ public class Unit : MonoBehaviour {
 		healthIndicator.text = Health.ToString();
 
 //		map = GameObject.Find ("BattleGround").GetComponent<Map> ();
+		defaultTint = Map.FactionColor (Faction);
+		ResetTint ();
 	}
 
 	// Update is called once per frame
@@ -70,7 +74,10 @@ public class Unit : MonoBehaviour {
 
 	public void ResetTurn() {
 		this.Dirty = false;
-		var noTint = new Color (1, 1, 1);
-		shipSprite.GetComponent<SpriteRenderer> ().color = noTint;
+		ResetTint ();
+	}
+
+	private void ResetTint() {
+		shipSprite.GetComponent<SpriteRenderer> ().color = defaultTint;
 	}
 }
