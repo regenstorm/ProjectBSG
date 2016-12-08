@@ -68,7 +68,7 @@ public class Map : MonoBehaviour {
 	void GenerateGrid() {
 		for (int x = 0; x < Width; x += ScalingFactor) {
 			for (int y = 0; y > -Height; y -= ScalingFactor) {
-				if (x % 4 == (y % 4 == 0 ? 0 : 2)) {
+				if (x % (ScalingFactor * 2) == (y % (ScalingFactor * 2) == 0 ? 0 : ScalingFactor)) {
 					Instantiate (gridCellPrefab, new Vector3(x, y), Quaternion.identity, gridContainer);
 				}
 			}
