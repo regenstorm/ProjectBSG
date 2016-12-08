@@ -32,7 +32,6 @@ public class Map : MonoBehaviour {
 
 		FillColliderBox ();
 		GenerateGrid ();
-
 		PlaceUnits ();
 	}
 
@@ -92,14 +91,21 @@ public class Map : MonoBehaviour {
 				// check if a valid attack target has been chosen
 				if (unit && UnitIsLegalAttackTarget (unit)) {
 					selectedUnit.Fight (unit);
-
-					DeselectCurrentUnit ();
-					gameState = GameState.IDLE;
+					EndSelectedUnitTurn ();
 				}
 			}
 		} else if (unit) {
 			SelectUnit (unit);
 		}
+	}
+
+	private void EndSelectedUnitTurn() {
+		selectedUnit.EndTurn ();
+		DeselectCurrentUnit ();
+		gameState = GameState.IDLE;
+		print ("end selected unit turn");
+
+		// FIXME: check if the battle is over or player's turn is done
 	}
 
 	private bool UnitIsLegalAttackTarget(Unit other) {
@@ -164,8 +170,7 @@ public class Map : MonoBehaviour {
 			DrawAttackTargetIndicators ();
 			gameState = GameState.ATTACK_TILE_SELECTION;
 		} else {
-			DeselectCurrentUnit ();
-			gameState = GameState.IDLE;
+			EndSelectedUnitTurn ();
 		}
 	}
 

@@ -10,6 +10,7 @@ public class Unit : MonoBehaviour {
 	public int Health = 50;
 	public int MaxHealth = 50;
 	public Faction Faction = Faction.SYNTH;
+	public bool Dirty = false;
 
 	Transform shipSprite;
 	Text healthIndicator;
@@ -59,5 +60,11 @@ public class Unit : MonoBehaviour {
 
 	public bool IsFriendlyWith(Unit other) {
 		return Faction == other.Faction;
+	}
+
+	public void EndTurn() {
+		this.Dirty = true;
+		var grayTint = new Color (0.5f, 0.5f, 0.5f);
+		shipSprite.GetComponent<SpriteRenderer> ().color = grayTint;
 	}
 }
