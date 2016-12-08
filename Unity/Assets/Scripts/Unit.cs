@@ -36,11 +36,10 @@ public class Unit : MonoBehaviour {
 	}
 
 	public void OnSelected() {
-		shipSprite.Translate (new Vector3(0, 0.1f));
+		shipSprite.GetComponent<Animator> ().SetTrigger ("selected");
 	}
 
 	public void OnDeselected() {
-		shipSprite.Translate (new Vector3(0, -0.1f));
 	}
 
 	public void Fight(Unit other) {
@@ -60,6 +59,8 @@ public class Unit : MonoBehaviour {
 				healthIndicator.text = Health.ToString();
 			}
 		}
+
+		shipSprite.GetComponent<Animator> ().SetTrigger ("receiveDamage");
 	}
 
 	public bool IsFriendlyWith(Unit other) {
