@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
 
 public class Unit : MonoBehaviour {
 	public int MoveRange = 2;
@@ -11,11 +12,17 @@ public class Unit : MonoBehaviour {
 	public Faction Faction = Faction.SYNTH;
 
 	Transform shipSprite;
+	Text healthIndicator;
 //	Map map;
 
 	// Use this for initialization
 	void Start () {
+		Transform healthText;
 		shipSprite = transform.FindChild ("ship_sprite");
+		healthText = transform.Find ("Canvas/Health Indicator");
+		healthIndicator = healthText.GetComponent <Text> ();
+		healthIndicator.text = Health.ToString();
+
 //		map = GameObject.Find ("BattleGround").GetComponent<Map> ();
 	}
 
@@ -33,11 +40,20 @@ public class Unit : MonoBehaviour {
 
 	public void Fight(Unit other) {
 		// FIXME: need a way to communicate battle outcome with the GameController (to display stats, messages, etc.)
-		var damage = Mathf.RoundToInt((Attack - other.Defense) * Random.Range (0.5f, 1.5f));
-		other.Health -= damage;
+		other.TakeDamage(this.Attack);
+	}
 
-		if (other.Health <= 0) {
-			Object.Destroy (other);
+	public void TakeDamage (int enemyAttack){
+		int damage = (int)((enemyAttack - this.Defense) * Random.Range (0.5f, 1.5f));
+		if (damage > 0) {
+			this.Health -= damage;
+			if (this.Health <= 0) {
+				Object.Destroy (gameObject);
+			} 
+			else {
+				// FIXME: PLS animation
+				healthIndicator.text = Health.ToString();
+			}
 		}
 	}
 
