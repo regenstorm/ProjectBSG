@@ -11,6 +11,7 @@ public class Map : MonoBehaviour {
 	public GameObject AttackOverlayPrefab;
 	public GameObject gridCellPrefab;
 	public GameObject AttackIndicatorPrefab;
+	public GameObject UnitPrefab;
 
 	private Transform unitsContainer;
 	private Transform overlayContainer;
@@ -31,6 +32,30 @@ public class Map : MonoBehaviour {
 
 		FillColliderBox ();
 		GenerateGrid ();
+
+		PlaceUnits ();
+	}
+
+	void PlaceUnits ()
+	{
+		// NOTE: factions and locations must have the same size.
+		// In fact, they're like an array of 2-tuples splitted into 2 arrays.
+		var factions = new Faction[] {
+			Faction.HUMAN,
+			Faction.SYNTH
+		};
+
+		var locations = new Vector3[] {
+			new Vector3(0, 0),
+			new Vector3(4, 0),
+		};
+
+		for (var i = 0; i < locations.Length; i++) {
+			var location = locations [i];
+			var faction = factions [i];
+			var unit = (GameObject) Instantiate (UnitPrefab, location, Quaternion.identity, unitsContainer);
+			unit.GetComponent<Unit> ().Faction = faction;
+		}
 	}
 
 	void FillColliderBox() {
