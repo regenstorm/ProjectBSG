@@ -18,6 +18,7 @@ public class Unit : MonoBehaviour {
 	Text healthIndicator;
 	Color defaultTint;
 	Animation anim;
+	Transform selectionIndicator;
 
 	Map map;
 
@@ -35,6 +36,8 @@ public class Unit : MonoBehaviour {
 		defaultTint = Map.FactionColor (Faction);
 		ResetTint ();
 
+		selectionIndicator = transform.Find ("SelectionIndicator");
+
 		map.RegisterUnit (this);
 	}
 
@@ -43,16 +46,18 @@ public class Unit : MonoBehaviour {
 	}
 
 	public void OnSelected() {
+		selectionIndicator.GetComponent<SpriteRenderer> ().enabled = true;
 		anim.Play ("UnitSelection");
 	}
 
 	public void OnDeselected() {
+		selectionIndicator.GetComponent<SpriteRenderer> ().enabled = false;
 		anim.Stop ("UnitSelection");
 	}
 
 	public void Fight(Unit other) {
 		// FIXME: need a way to communicate battle outcome with the GameController (to display stats, messages, etc.)
-		//anim.Play("UnitAttacking");
+		anim.Play("UnitAttacking");
 		other.TakeDamage(this.Attack);
 	}
 
@@ -61,8 +66,8 @@ public class Unit : MonoBehaviour {
 		if (damage > 0) {
 			this.Health -= damage;
 			if (this.Health <= 0) {
+				print ("deregistering");
 				map.DeregisterUnit (this);
-				Object.Destroy (gameObject);
 			} 
 			else {
 				// FIXME: PLS animation
@@ -70,7 +75,7 @@ public class Unit : MonoBehaviour {
 			}
 		}
 
-//		anim.Play("UnitReceivingDamage");
+		anim.Play("UnitReceivingDamage");
 	}
 
 	public bool IsFriendlyWith(Unit other) {
@@ -90,5 +95,11 @@ public class Unit : MonoBehaviour {
 
 	private void ResetTint() {
 		shipSprite.GetComponent<SpriteRenderer> ().color = defaultTint;
+	}
+
+	public void ReceivingDamageAnimationDone() {
+		if (this.Health <= 0) {
+			Object.Destroy (gameObject);
+		}
 	}
 }
