@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using System.Linq;
 
 public class Unit : MonoBehaviour {
 	public int MoveRange;
@@ -17,7 +19,7 @@ public class Unit : MonoBehaviour {
 	Color defaultTint;
 	Animation anim;
 
-//	Map map;
+	Map map;
 
 	// Use this for initialization
 	void Start () {
@@ -29,9 +31,11 @@ public class Unit : MonoBehaviour {
 		healthIndicator = healthText.GetComponent <Text> ();
 		healthIndicator.text = Health.ToString();
 
-//		map = GameObject.Find ("BattleGround").GetComponent<Map> ();
+		map = GameObject.Find ("BattleGround").GetComponent<Map> ();
 		defaultTint = Map.FactionColor (Faction);
 		ResetTint ();
+
+		map.RegisterUnit (this);
 	}
 
 	// Update is called once per frame
@@ -48,7 +52,7 @@ public class Unit : MonoBehaviour {
 
 	public void Fight(Unit other) {
 		// FIXME: need a way to communicate battle outcome with the GameController (to display stats, messages, etc.)
-		anim.Play("UnitAttacking");
+		//anim.Play("UnitAttacking");
 		other.TakeDamage(this.Attack);
 	}
 
@@ -57,6 +61,7 @@ public class Unit : MonoBehaviour {
 		if (damage > 0) {
 			this.Health -= damage;
 			if (this.Health <= 0) {
+				map.DeregisterUnit (this);
 				Object.Destroy (gameObject);
 			} 
 			else {
@@ -65,7 +70,7 @@ public class Unit : MonoBehaviour {
 			}
 		}
 
-		anim.Play("UnitReceivingDamage");
+//		anim.Play("UnitReceivingDamage");
 	}
 
 	public bool IsFriendlyWith(Unit other) {

@@ -30,6 +30,7 @@ public enum GameEvent {
 
 public class GameController
 {
+	public Faction whoWon;
 	private static GameController _instance;
 	public static GameController Instance {
 		get {

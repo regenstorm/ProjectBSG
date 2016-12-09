@@ -22,8 +22,17 @@ public class Map : MonoBehaviour {
 
 	private GameState gameState = GameState.IDLE;
 	private Faction currentFaction = Faction.SYNTH;
+	private Dictionary<Faction, HashSet<Unit>> unitsOfFaction;
 
-	Faction NextFaction() {
+	public void RegisterUnit(Unit unit) {
+		unitsOfFaction [unit.Faction].Add (unit);
+	}
+
+	public void DeregisterUnit(Unit unit) {
+		unitsOfFaction [unit.Faction].Remove (unit);
+	}
+
+	public Faction NextFaction() {
 		return currentFaction == Faction.SYNTH ? Faction.HUMAN : Faction.SYNTH;
 	}
 
@@ -33,7 +42,7 @@ public class Map : MonoBehaviour {
 
 	private void NextTurn() {
 		currentFaction = NextFaction();
-		foreach (var unit in UnitsOfFaction(currentFaction)) {
+		foreach (var unit in unitsOfFaction[currentFaction]) {
 			unit.ResetTurn ();
 		}
 		UpdateFactionIndicator ();
@@ -47,6 +56,10 @@ public class Map : MonoBehaviour {
 
 	void Start () {
 		pathFinder = new PathFinder<Vector3> ();
+
+		unitsOfFaction = new Dictionary<Faction, HashSet<Unit>> ();
+		unitsOfFaction.Add (Faction.HUMAN, new HashSet<Unit> ());
+		unitsOfFaction.Add (Faction.SYNTH, new HashSet<Unit> ());
 
 		this.Width = ScalingFactor * 8;
 		this.Height = ScalingFactor * 8;
@@ -137,11 +150,22 @@ public class Map : MonoBehaviour {
 		DeselectCurrentUnit ();
 		gameState = GameState.IDLE;
 
-		// FIXME: check if the battle is over or player's turn is done
+		// check if battle is over
+		if (unitsOfFaction[NextFaction()].Count() == 0) {
+			ConcludeBattle (whoWon: currentFaction);
+			return;
+		}
+
+		// check if player's turn is done
 		var allUnitsUsed = UnitsOfFaction(currentFaction).All (unit => unit.Dirty);
 		if (allUnitsUsed) {
 			NextTurn ();
 		}
+	}
+
+	private void ConcludeBattle(Faction whoWon) {
+		GameController.Instance.whoWon = whoWon;
+		UnityEngine.SceneManagement.SceneManager.LoadScene ("BattleConclusion");
 	}
 
 	private bool UnitIsLegalAttackTarget(Unit other) {
@@ -161,7 +185,7 @@ public class Map : MonoBehaviour {
 		return units;
 	}
 
-	private IEnumerable<Unit> UnitsOfFaction(Faction faction) {
+	public IEnumerable<Unit> UnitsOfFaction(Faction faction) {
 		return from unit in AllUnits ()
 		       where unit.Faction == faction
 		       select unit;
