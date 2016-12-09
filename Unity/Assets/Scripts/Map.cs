@@ -164,7 +164,7 @@ public class Map : MonoBehaviour {
 	}
 
 	private void ConcludeBattle(Faction whoWon) {
-		GameController.Instance.whoWon = whoWon;
+		BattleController.Instance.whoWon = whoWon;
 		UnityEngine.SceneManagement.SceneManager.LoadScene ("BattleConclusion");
 	}
 
@@ -298,7 +298,7 @@ public class Map : MonoBehaviour {
 	private IEnumerable<Unit> EnemiesInRange(Unit unit) {
 		return (from cell in LegalStationaryAttackMoves (unit)
 		  let other = UnitAtPosition (cell)
-		  where other != null && !GameController.Instance.FriendsWith (other.Faction, unit.Faction)
+		  where other != null && !BattleController.Instance.FriendsWith (other.Faction, unit.Faction)
 		  select other);
 	}
 
@@ -345,7 +345,7 @@ public class Map : MonoBehaviour {
 	private IEnumerable<Vector3> AttackableNeighbors(Vector3 pos) {
 		return Neighbors (pos, (current, neighbor) => {
 			var other = UnitAtPosition (neighbor);
-			return other == null || !GameController.Instance.FriendsWith (selectedUnit.Faction, other.Faction);
+			return other == null || !BattleController.Instance.FriendsWith (selectedUnit.Faction, other.Faction);
 		});
 	}
 

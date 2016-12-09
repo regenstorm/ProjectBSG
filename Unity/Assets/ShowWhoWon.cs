@@ -7,7 +7,7 @@ public class ShowWhoWon : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 //		;
-		GetComponent<Text>().text = GameController.Instance.whoWon.ToString();
+		GetComponent<Text>().text = BattleController.Instance.whoWon.ToString();
 	}
 	
 	// Update is called once per frame
