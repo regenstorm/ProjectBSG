@@ -15,11 +15,14 @@ public class Unit : MonoBehaviour {
 	Transform shipSprite;
 	Text healthIndicator;
 	Color defaultTint;
+	Animation anim;
 
 //	Map map;
 
 	// Use this for initialization
 	void Start () {
+		anim = GetComponent<Animation> ();
+
 		Transform healthText;
 		shipSprite = transform.FindChild ("ship_sprite");
 		healthText = transform.Find ("Canvas/Health Indicator");
@@ -36,14 +39,16 @@ public class Unit : MonoBehaviour {
 	}
 
 	public void OnSelected() {
-		shipSprite.GetComponent<Animator> ().SetTrigger ("selected");
+		anim.Play ("UnitSelection");
 	}
 
 	public void OnDeselected() {
+		anim.Stop ("UnitSelection");
 	}
 
 	public void Fight(Unit other) {
 		// FIXME: need a way to communicate battle outcome with the GameController (to display stats, messages, etc.)
+		anim.Play("UnitAttacking");
 		other.TakeDamage(this.Attack);
 	}
 
@@ -60,7 +65,7 @@ public class Unit : MonoBehaviour {
 			}
 		}
 
-		shipSprite.GetComponent<Animator> ().SetTrigger ("receiveDamage");
+		anim.Play("UnitReceivingDamage");
 	}
 
 	public bool IsFriendlyWith(Unit other) {
