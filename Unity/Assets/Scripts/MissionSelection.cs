@@ -18,6 +18,7 @@ public class MissionSelection : MonoBehaviour {
 	}
 
 	public void IntroMissionButtonPressed () {
+		Tracking.instance.TrackEvent (TrackingEventTypes.MissionSelection, "Selected intro mission");
 		SceneManager.LoadScene ("MissionIntro");
 	}
 }

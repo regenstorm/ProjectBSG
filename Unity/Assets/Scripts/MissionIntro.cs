@@ -18,6 +18,7 @@ public class MissionIntro : MonoBehaviour {
 	}
 
 	public void NextButtonPressed() {
+		Tracking.instance.TrackEvent (TrackingEventTypes.MissionIntro, "Next button pressed");
 		SceneManager.LoadScene ("IntroBattle");
 	}
 }

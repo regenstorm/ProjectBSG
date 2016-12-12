@@ -22,6 +22,7 @@ public class MainMenu : MonoBehaviour {
 	}
 
 	public void NewGame() {
+		Tracking.instance.TrackEvent (TrackingEventTypes.MainMenu, "New game button pressed");
 		SceneManager.LoadScene ("MissionSelection");
 	}
 
@@ -31,11 +32,12 @@ public class MainMenu : MonoBehaviour {
 
 	public void LoadCredits() {
 		SceneManager.LoadScene ("Credits");
-		Tracking.instance.TrackEvent ("Credits button pressed", "null");
+		Tracking.instance.TrackEvent (TrackingEventTypes.MainMenu, "Credits button pressed");
 	}
 
 	public void ExitGame() {
 		Debug.Log ("Exiting game...");
+		Tracking.instance.TrackEvent (TrackingEventTypes.MainMenu, "Exit game button pressed");
 		Application.Quit();
 	}
 		

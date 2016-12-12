@@ -1,8 +1,21 @@
 ﻿using UnityEngine;
 using System.Collections;
 using MySql.Data.MySqlClient;
+using System.ComponentModel;
+using System;
+using System.Reflection;
+
+public enum TrackingEventTypes {
+	[Description("MainMenu")] MainMenu, 
+	[Description("Credits")] Credits,
+	[Description("MissionSelection")] MissionSelection,
+	[Description("MissionIntro")] MissionIntro,
+	[Description("BattleScreen")] BattleScreen
+}
 
 public class Tracking : MonoBehaviour {
+
+
 
 	const string DeviceUniqueIdentifierKey = "DeviceUniqueIdentifierKey";
 	private MySqlConnection connection;
@@ -24,20 +37,17 @@ public class Tracking : MonoBehaviour {
 		var password = "1234";			
 		var connectionString = "SERVER=" + server + ";" + "DATABASE=" + 
 			database + ";" + "UID=" + uid + ";" + "PASSWORD=" + password + ";";
-
+		
 		connection = new MySqlConnection(connectionString);
 		this.OpenConnection ();
 	}
 
-	private bool OpenConnection()
-	{
-		try
-		{
+	private bool OpenConnection() {
+		try {
 			connection.Open();
 			return true;
 		}
-		catch (MySqlException ex)
-		{
+		catch (MySqlException ex) {
 			Debug.Log("Unable to open connection: " + ex);
 			switch (ex.Number)
 			{
@@ -53,9 +63,7 @@ public class Tracking : MonoBehaviour {
 		}
 	}
 
-	//Close connection
-	private bool CloseConnection()
-	{
+	private bool CloseConnection() {
 		try {
 			connection.Close();
 			return true;
@@ -84,27 +92,18 @@ public class Tracking : MonoBehaviour {
 		Debug.Log ("Session tracked: " + this.SessionId);
 	}
 
-	public void StopSession () {
-		
-	}
-
-	public void TrackEvent(string eventType, string value)
+	public void TrackEvent(TrackingEventTypes eventType, string eventMessage)
 	{
-		Debug.Log ("Tracking event: " + eventType + " of value: " + value);
+		Debug.Log ("Tracking event: " + eventType + ": " + eventMessage);
 		string query = string.Format("INSERT INTO events (event_type_id, event_data, session_id, event_time) VALUES('{0}', '{1}', '{2}', now())", 
-			eventType, value, SessionId);
+			GetEnumDescription(eventType), eventMessage, this.SessionId);
 
 		ExecuteQuery (query);
 	}
 
 	private long ExecuteQuery(string query) {
-//		if (this.OpenConnection() != true) {
-//			Debug.Log ("Unable to open connection and insert a record: ");
-//		}
-
 		MySqlCommand cmd = new MySqlCommand(query, connection);
 		cmd.ExecuteNonQuery();
-//		this.CloseConnection();
 		return cmd.LastInsertedId;
 	}
 		
@@ -115,5 +114,19 @@ public class Tracking : MonoBehaviour {
 			PlayerPrefs.SetString (DeviceUniqueIdentifierKey, deviceUniquieIdentifier);
 		}
 		return deviceUniquieIdentifier;
+	}
+
+	//It's clearly doesn't belong here, but fuck it
+	private static string GetEnumDescription(Enum value)
+	{
+		FieldInfo fi = value.GetType().GetField(value.ToString());
+
+		DescriptionAttribute[] attributes = 
+			(DescriptionAttribute[])fi.GetCustomAttributes(typeof(DescriptionAttribute), false);
+
+		if (attributes != null && attributes.Length > 0)
+			return attributes[0].Description;
+		else
+			return value.ToString();
 	}
 }

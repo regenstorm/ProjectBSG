@@ -130,17 +130,20 @@ public class Map : MonoBehaviour {
 
 		if (selectedUnit) {
 			if (gameState == GameState.MOVE_TILE_SELECTION) {
+				Tracking.instance.TrackEvent (TrackingEventTypes.BattleScreen, "Unit is moved");
 				MoveUnit (selectedUnit, clickedTile);
 			}
 
 			if (gameState == GameState.ATTACK_TILE_SELECTION) {
 				// check if a valid attack target has been chosen
 				if (unit && UnitIsLegalAttackTarget (unit)) {
+					Tracking.instance.TrackEvent (TrackingEventTypes.BattleScreen, "Unit is attacked");
 					selectedUnit.Fight (unit);
 					EndSelectedUnitTurn ();
 				}
 			}
 		} else if (unit) {
+			Tracking.instance.TrackEvent (TrackingEventTypes.BattleScreen, "Unit is selected");
 			SelectUnit (unit);
 		}
 	}
@@ -165,6 +168,8 @@ public class Map : MonoBehaviour {
 
 	private void ConcludeBattle(Faction whoWon) {
 		BattleController.Instance.whoWon = whoWon;
+		Tracking.instance.TrackEvent (TrackingEventTypes.BattleScreen, "Battle is concluded");
+
 		UnityEngine.SceneManagement.SceneManager.LoadScene ("BattleConclusion");
 	}
 

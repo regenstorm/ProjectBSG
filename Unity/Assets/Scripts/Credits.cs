@@ -13,7 +13,7 @@ public class Credits : MonoBehaviour {
 	}
 
 	public void BackButtonPressed () {
-		Tracking.instance.TrackEvent ("Back button pressed", "null");
+		Tracking.instance.TrackEvent (TrackingEventTypes.Credits, "Back button pressed");
 		SceneManager.LoadScene ("MainMenu");
 	}
 	
