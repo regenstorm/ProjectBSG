@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.UI;
 
 public class Map : MonoBehaviour {
 	public int ScalingFactor = 2;
@@ -10,21 +11,83 @@ public class Map : MonoBehaviour {
 	public GameObject MoveOverlayPrefab;
 	public GameObject AttackOverlayPrefab;
 	public GameObject gridCellPrefab;
+	public GameObject AttackIndicatorPrefab;
+	public GameObject UnitPrefab;
 
 	private Transform unitsContainer;
 	private Transform overlayContainer;
 	private Transform gridContainer;
 	private Unit selectedUnit;
+	private PathFinder<Vector3> pathFinder;
+
+	private GameState gameState = GameState.IDLE;
+	private Faction currentFaction = Faction.SYNTH;
+
+	Faction NextFaction() {
+		return currentFaction == Faction.SYNTH ? Faction.HUMAN : Faction.SYNTH;
+	}
+
+	public static Color FactionColor(Faction faction) {
+		return faction == Faction.SYNTH ? Color.blue : Color.red;
+	}
+
+	private void NextTurn() {
+		currentFaction = NextFaction();
+		foreach (var unit in UnitsOfFaction(currentFaction)) {
+			unit.ResetTurn ();
+		}
+		UpdateFactionIndicator ();
+	}
+
+	private void UpdateFactionIndicator() {
+		var indicator = GameObject.Find ("FactionIndicator").GetComponent<Text> ();
+		indicator.text = currentFaction.ToString();
+		indicator.color = FactionColor (currentFaction);
+	}
 
 	void Start () {
-		this.Width = ScalingFactor * 15;
-		this.Height = ScalingFactor * 10;
+		pathFinder = new PathFinder<Vector3> ();
+
+		this.Width = ScalingFactor * 8;
+		this.Height = ScalingFactor * 8;
 		unitsContainer = transform.Find ("Units");
 		overlayContainer = transform.Find ("Overlay");
 		gridContainer = transform.Find ("Grid");
 
 		FillColliderBox ();
 		GenerateGrid ();
+		PlaceUnits ();
+		UpdateFactionIndicator ();
+	}
+
+	void PlaceUnits ()
+	{
+		// NOTE: factions and locations must have the same size.
+		// In fact, they're like an array of 2-tuples splitted into 2 arrays.
+		var factions = new Faction[] {
+			Faction.HUMAN,
+			Faction.HUMAN,
+			Faction.HUMAN,
+			Faction.SYNTH,
+			Faction.SYNTH,
+			Faction.SYNTH,
+		};
+
+		var locations = new Vector3[] {
+			new Vector3(0, 0),
+			new Vector3(2, 0),
+			new Vector3(4, 0),
+			new Vector3(10, 0),
+			new Vector3(6, -4),
+			new Vector3(2, -6),
+		};
+
+		for (var i = 0; i < locations.Length; i++) {
+			var location = locations [i];
+			var faction = factions [i];
+			var unit = (GameObject) Instantiate (UnitPrefab, location, Quaternion.identity, unitsContainer);
+			unit.GetComponent<Unit> ().Faction = faction;
+		}
 	}
 
 	void FillColliderBox() {
@@ -37,7 +100,7 @@ public class Map : MonoBehaviour {
 	void GenerateGrid() {
 		for (int x = 0; x < Width; x += ScalingFactor) {
 			for (int y = 0; y > -Height; y -= ScalingFactor) {
-				if (x % 4 == (y % 4 == 0 ? 0 : 2)) {
+				if (x % (ScalingFactor * 2) == (y % (ScalingFactor * 2) == 0 ? 0 : ScalingFactor)) {
 					Instantiate (gridCellPrefab, new Vector3(x, y), Quaternion.identity, gridContainer);
 				}
 			}
@@ -49,14 +112,40 @@ public class Map : MonoBehaviour {
 
 	void OnMouseDown() {
 		var mousePos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
+		var clickedTile = RoundPosition (mousePos - transform.position);
+		var unit = UnitAtPosition(clickedTile);
 
 		if (selectedUnit) {
-			// move the unit to the new position
-			var newPos = RoundPosition(mousePos - transform.position);
-			MoveUnit (selectedUnit, newPos);
+			if (gameState == GameState.MOVE_TILE_SELECTION) {
+				MoveUnit (selectedUnit, clickedTile);
+			}
 
-			DeselectCurrentUnit ();
+			if (gameState == GameState.ATTACK_TILE_SELECTION) {
+				// check if a valid attack target has been chosen
+				if (unit && UnitIsLegalAttackTarget (unit)) {
+					selectedUnit.Fight (unit);
+					EndSelectedUnitTurn ();
+				}
+			}
+		} else if (unit) {
+			SelectUnit (unit);
 		}
+	}
+
+	private void EndSelectedUnitTurn() {
+		selectedUnit.EndTurn ();
+		DeselectCurrentUnit ();
+		gameState = GameState.IDLE;
+
+		// FIXME: check if the battle is over or player's turn is done
+		var allUnitsUsed = UnitsOfFaction(currentFaction).All (unit => unit.Dirty);
+		if (allUnitsUsed) {
+			NextTurn ();
+		}
+	}
+
+	private bool UnitIsLegalAttackTarget(Unit other) {
+		return !other.IsFriendlyWith (selectedUnit) && EnemiesInRange(selectedUnit).Contains(other);
 	}
 
 	public bool IsLegalPosition(Vector3 pos) {
@@ -64,17 +153,29 @@ public class Map : MonoBehaviour {
 			&& pos.y <= 0 && pos.y > -Height;
 	}
 
-	public Unit UnitAtPosition(Vector3 pos) {
+	private IEnumerable<Unit> AllUnits() {
+		var units = new List<Unit> ();
 		foreach (Transform child in unitsContainer) {
-			if (child.localPosition == pos) {
-				return child.gameObject.GetComponent<Unit>();
-			}
+			units.Add (child.GetComponent<Unit> ());
 		}
+		return units;
+	}
 
-		return null;
+	private IEnumerable<Unit> UnitsOfFaction(Faction faction) {
+		return from unit in AllUnits ()
+		       where unit.Faction == faction
+		       select unit;
+	}
+
+	public Unit UnitAtPosition(Vector3 pos) {
+		return AllUnits ().FirstOrDefault (unit => unit.transform.localPosition == pos);
 	}
 
 	public void SelectUnit(Unit unit) {
+		if (unit.Faction != currentFaction || unit.Dirty) {
+			return;
+		}
+
 		if (this.selectedUnit) {
 			DeselectCurrentUnit ();
 		}
@@ -82,6 +183,7 @@ public class Map : MonoBehaviour {
 		this.selectedUnit = unit;
 		unit.OnSelected ();
 		DrawLegalMovesOverlay ();
+		gameState = GameState.MOVE_TILE_SELECTION;
 	}
 
 	public void DeselectCurrentUnit() {
@@ -91,15 +193,32 @@ public class Map : MonoBehaviour {
 	}
 
 	public void MoveUnit(Unit unit, Vector3 pos) {
+		ClearLegalMovesOverlay ();
+
 		if (UnitCanMoveToPosition (selectedUnit, pos)) {
-			StartCoroutine (MoveUnitInSequence(unit, Path (selectedUnit, pos)));
+			gameState = GameState.MOVING;
+			StartCoroutine (MoveUnitInSequence (unit, pathFinder.Path (selectedUnit.transform.localPosition, pos, this.MoveableNeighbors)));
+		} else {
+			DeselectCurrentUnit ();
+			gameState = GameState.IDLE;
 		}
 	}
 
 	private IEnumerator MoveUnitInSequence(Unit unit, IEnumerable<Vector3> path) {
+		// FIXME: Do some kind of movement animation here
+		// https://docs.unity3d.com/ScriptReference/Vector3.MoveTowards.html
 		foreach (var step in path) {
 			unit.transform.localPosition = step;
 			yield return new WaitForSeconds(0.2f);
+		}
+
+		// FIXME: using Count() could be slow
+		if (EnemiesInRange (unit).Count () > 0) {
+			DrawLegalAttacksOverlay ();
+			DrawAttackTargetIndicators ();
+			gameState = GameState.ATTACK_TILE_SELECTION;
+		} else {
+			EndSelectedUnitTurn ();
 		}
 	}
 
@@ -108,6 +227,21 @@ public class Map : MonoBehaviour {
 			x = Mathf.Round(pos.x / ScalingFactor) * ScalingFactor,
 			y = Mathf.Round(pos.y / ScalingFactor) * ScalingFactor
 		};
+	}
+
+	public void DrawLegalAttacksOverlay() {
+		var cells = LegalStationaryAttackMoves (selectedUnit);
+
+		foreach (Vector3 cell in cells) {
+			Instantiate (AttackOverlayPrefab, cell, Quaternion.identity, overlayContainer);
+		}
+	}
+
+	private void DrawAttackTargetIndicators() {
+		foreach (var unit in EnemiesInRange(selectedUnit)) {
+			var location = unit.transform.localPosition;
+			Instantiate (AttackIndicatorPrefab, location, Quaternion.identity, overlayContainer);
+		}
 	}
 
 	public void DrawLegalMovesOverlay() {
@@ -137,109 +271,11 @@ public class Map : MonoBehaviour {
 		}
 	}
 
-	public bool LegalMoveInclusionPredicate(Vector3 current, Vector3 neighbor) {
-		return UnitAtPosition (neighbor) == null;
-	}
-
-	public InclusionPredicate GetLegalAttackInclusionPredicate(Unit unit) {
-		return (current, neighbor) => {
-			var other = UnitAtPosition (neighbor);
-			return other == null || !GameController.Instance.FriendsWith(unit.Faction, other.Faction);
-			return true; // other == null || GameController.Instance.FriendsWith(unit.Faction, other.Faction);
-		};
-	}
-
-	private Dictionary<Vector3, int> DistancesToUnit(Unit unit, InclusionPredicate inclusionPredicate) {
-		// FIXME: cache this every turn
-		return BFS<int>(
-			unit.transform.localPosition,
-			0,
-			_ => false,
-			inclusionPredicate,
-			(current, neighbor, acc) => {
-				acc[neighbor] = 1 + acc[current];
-			});
-	}
-
-	public IEnumerable<Vector3> LegalAttackMoves(Unit unit) {
-		return from pair in DistancesToUnit (unit, GetLegalAttackInclusionPredicate(unit))
-				where pair.Value <= unit.MoveRange + unit.AttackRange && pair.Value > 0
-			select pair.Key;
-	}
-
-	public IEnumerable<Vector3> LegalMoves(Unit unit) {
-		return from pair in DistancesToUnit(unit, LegalMoveInclusionPredicate)
-		       where pair.Value <= unit.MoveRange && pair.Value > 0
-		       select pair.Key;
-	}
-
-	public IEnumerable<Vector3> Path(Unit unit, Vector3 pos) {
-		var comeFrom = BFS<Vector3> (
-			unit.transform.localPosition,
-			unit.transform.localPosition,
-			current => current.Equals(pos),
-			(current, neighbor) => {
-				return UnitAtPosition(neighbor) == null;
-			},
-			(current, neighbor, acc) => {
-				acc[neighbor] = current;
-			});
-
-		List<Vector3> path = new List<Vector3> ();
-
-		// backtrack the dictionary to build the path
-		var c = pos;
-		path.Add (c);
-		while (true) {
-			var parent = comeFrom [c];
-			if (parent.Equals (unit.transform.localPosition)) {
-				break;
-			} else {
-				path.Insert (0, parent);
-				c = parent;
-			}
-		}
-
-		return path;
-	}
-
-	///////////////////
-	//
-	// Pathfinding stuffs. Should they be in a new class?
-	// http://www.redblobgames.com/pathfinding/tower-defense/
-
-	public delegate void NeighborHandler<T>(Vector3 current, Vector3 neighbor, Dictionary<Vector3, T> container);
-	public delegate bool StoppingPredicate(Vector3 current);
-	public delegate bool InclusionPredicate (Vector3 current, Vector3 neighbor);
-
-	public Dictionary<Vector3, T> BFS<T>(
-			Vector3 start,
-			T initialValue,
-			StoppingPredicate stoppingPredicate,
-			InclusionPredicate inclusionPredicate,
-			NeighborHandler<T> neighborHandler) {
-		Queue<Vector3> frontier = new Queue<Vector3> ();
-		var accumulator = new Dictionary<Vector3, T> ();
-
-		frontier.Enqueue (start);
-		accumulator[start] = initialValue;
-
-		while (frontier.Count > 0) {
-			var current = frontier.Dequeue ();
-
-			if (stoppingPredicate (current)) {
-				break;
-			}
-
-			foreach (var neighbor in neighborPositions(current, inclusionPredicate)) {
-				if (!accumulator.ContainsKey(neighbor)) {
-					frontier.Enqueue (neighbor);
-					neighborHandler(current, neighbor, accumulator);
-				}
-			}
-		}
-
-		return accumulator;
+	private IEnumerable<Unit> EnemiesInRange(Unit unit) {
+		return (from cell in LegalStationaryAttackMoves (unit)
+		  let other = UnitAtPosition (cell)
+		  where other != null && !GameController.Instance.FriendsWith (other.Faction, unit.Faction)
+		  select other);
 	}
 
 	public bool UnitCanMoveToPosition(Unit unit, Vector3 pos) {
@@ -247,7 +283,7 @@ public class Map : MonoBehaviour {
 		return LegalMoves (unit).Contains(pos);
 	}
 
-	IEnumerable<Vector3> neighborPositions(Vector3 pos, InclusionPredicate inclusionPredicate) {
+	private IEnumerable<Vector3> Neighbors(Vector3 pos, System.Func<Vector3, Vector3, bool> inclusionPredicate) {
 		for (int i = -1; i <= 1; i++) {
 			for (int j = -1; j <= 1; j++) {
 				var neighbor = new Vector3 {
@@ -260,5 +296,36 @@ public class Map : MonoBehaviour {
 				}
 			}
 		}
+	}
+
+	public IEnumerable<Vector3> LegalStationaryAttackMoves(Unit unit) {
+		// legal attack cells immediately surrounding the unit
+		return from pair in pathFinder.DistancesToNode (selectedUnit.transform.localPosition, this.AttackableNeighbors)
+				where pair.Value <= selectedUnit.AttackRange && pair.Value > 0
+			select pair.Key;
+	}
+
+	public IEnumerable<Vector3> LegalAttackMoves(Unit unit) {
+		// all possible legal attack cells of the unit
+		return from pair in pathFinder.DistancesToNode (unit.transform.localPosition, this.AttackableNeighbors)
+				where pair.Value <= unit.MoveRange + unit.AttackRange && pair.Value > 0
+			select pair.Key;
+	}
+
+	public IEnumerable<Vector3> LegalMoves(Unit unit) {
+		return from pair in pathFinder.DistancesToNode(unit.transform.localPosition, this.MoveableNeighbors)
+				where pair.Value <= unit.MoveRange
+			select pair.Key;
+	}
+
+	private IEnumerable<Vector3> AttackableNeighbors(Vector3 pos) {
+		return Neighbors (pos, (current, neighbor) => {
+			var other = UnitAtPosition (neighbor);
+			return other == null || !GameController.Instance.FriendsWith (selectedUnit.Faction, other.Faction);
+		});
+	}
+
+	private IEnumerable<Vector3> MoveableNeighbors(Vector3 pos) {
+		return Neighbors (pos, (current, neighbor) => UnitAtPosition (neighbor) == null);
 	}
 }
