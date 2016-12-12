@@ -10,10 +10,15 @@ public class MainMenu : MonoBehaviour {
 	public Button loadGameButton; //LOL
 	public Button creditsButton;
 
+	void Awake() {
+	}
+
 	void Start () {
 		newGameButton.onClick.AddListener (NewGame);
 		exitGameButton.onClick.AddListener (ExitGame);
 		creditsButton.onClick.AddListener (LoadCredits);
+		Tracking.instance.TrackDevice ();
+		Tracking.instance.StartSession ();
 	}
 
 	public void NewGame() {
