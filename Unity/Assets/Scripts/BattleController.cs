@@ -28,13 +28,14 @@ public enum GameEvent {
 	UNIT_SELECT,
 };
 
-public class GameController
+public class BattleController
 {
-	private static GameController _instance;
-	public static GameController Instance {
+	public Faction whoWon;
+	private static BattleController _instance;
+	public static BattleController Instance {
 		get {
 			if (_instance == null) {
-				_instance = new GameController ();
+				_instance = new BattleController ();
 
 			}
 			return _instance;
@@ -46,7 +47,7 @@ public class GameController
 	private GameState currentState = GameState.IDLE;
 	private Faction currentFaction = Faction.SYNTH;
 
-	public GameController ()
+	public BattleController ()
 	{
 	}
 

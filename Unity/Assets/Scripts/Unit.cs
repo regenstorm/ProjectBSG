@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using System.Linq;
 
 public class Unit : MonoBehaviour {
 	public int MoveRange;
@@ -11,24 +13,35 @@ public class Unit : MonoBehaviour {
 	public int MaxHealth;
 	public Faction Faction;
 	public bool Dirty = false;
+	public AudioSource shootingSound;
+	public AudioSource dyingExplosionSound;
 
 	Transform shipSprite;
 	Text healthIndicator;
 	Color defaultTint;
+	Animation anim;
+	Transform selectionIndicator;
+	Unit unitUnderAttack;
 
-//	Map map;
+	Map map;
 
 	// Use this for initialization
 	void Start () {
+		anim = GetComponent<Animation> ();
+
 		Transform healthText;
 		shipSprite = transform.FindChild ("ship_sprite");
 		healthText = transform.Find ("Canvas/Health Indicator");
 		healthIndicator = healthText.GetComponent <Text> ();
 		healthIndicator.text = Health.ToString();
 
-//		map = GameObject.Find ("BattleGround").GetComponent<Map> ();
+		map = GameObject.Find ("BattleGround").GetComponent<Map> ();
 		defaultTint = Map.FactionColor (Faction);
 		ResetTint ();
+
+		selectionIndicator = transform.Find ("SelectionIndicator");
+
+		map.RegisterUnit (this);
 	}
 
 	// Update is called once per frame
@@ -36,15 +49,20 @@ public class Unit : MonoBehaviour {
 	}
 
 	public void OnSelected() {
-		shipSprite.GetComponent<Animator> ().SetTrigger ("selected");
+		selectionIndicator.GetComponent<SpriteRenderer> ().enabled = true;
+		anim.Play ("UnitSelection");
 	}
 
 	public void OnDeselected() {
+		selectionIndicator.GetComponent<SpriteRenderer> ().enabled = false;
+		anim.Stop ("UnitSelection");
 	}
 
 	public void Fight(Unit other) {
 		// FIXME: need a way to communicate battle outcome with the GameController (to display stats, messages, etc.)
-		other.TakeDamage(this.Attack);
+		anim.Play("UnitAttacking");
+		shootingSound.Play ();
+		unitUnderAttack = other;
 	}
 
 	public void TakeDamage (int enemyAttack){
@@ -52,7 +70,7 @@ public class Unit : MonoBehaviour {
 		if (damage > 0) {
 			this.Health -= damage;
 			if (this.Health <= 0) {
-				Object.Destroy (gameObject);
+				map.DeregisterUnit (this);
 			} 
 			else {
 				// FIXME: PLS animation
@@ -60,7 +78,7 @@ public class Unit : MonoBehaviour {
 			}
 		}
 
-		shipSprite.GetComponent<Animator> ().SetTrigger ("receiveDamage");
+		anim.Play("UnitReceivingDamage");
 	}
 
 	public bool IsFriendlyWith(Unit other) {
@@ -80,5 +98,19 @@ public class Unit : MonoBehaviour {
 
 	private void ResetTint() {
 		shipSprite.GetComponent<SpriteRenderer> ().color = defaultTint;
+	}
+
+	// Animation callbacks
+
+	public void ReceivingDamageAnimationDone() {
+		if (this.Health <= 0) {
+			dyingExplosionSound.Play ();
+			Object.Destroy (gameObject, t: dyingExplosionSound.clip.length);
+		}
+	}
+
+	public void AnimationShotFired() {
+		unitUnderAttack.TakeDamage(this.Attack);
+		unitUnderAttack = null;
 	}
 }
