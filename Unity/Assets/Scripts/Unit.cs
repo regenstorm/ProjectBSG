@@ -14,12 +14,14 @@ public class Unit : MonoBehaviour {
 	public Faction Faction;
 	public bool Dirty = false;
 	public AudioSource shootingSound;
+	public AudioSource dyingExplosionSound;
 
 	Transform shipSprite;
 	Text healthIndicator;
 	Color defaultTint;
 	Animation anim;
 	Transform selectionIndicator;
+	Unit unitUnderAttack;
 
 	Map map;
 
@@ -60,7 +62,7 @@ public class Unit : MonoBehaviour {
 		// FIXME: need a way to communicate battle outcome with the GameController (to display stats, messages, etc.)
 		anim.Play("UnitAttacking");
 		shootingSound.Play ();
-		other.TakeDamage(this.Attack);
+		unitUnderAttack = other;
 	}
 
 	public void TakeDamage (int enemyAttack){
@@ -68,7 +70,6 @@ public class Unit : MonoBehaviour {
 		if (damage > 0) {
 			this.Health -= damage;
 			if (this.Health <= 0) {
-				print ("deregistering");
 				map.DeregisterUnit (this);
 			} 
 			else {
@@ -99,9 +100,17 @@ public class Unit : MonoBehaviour {
 		shipSprite.GetComponent<SpriteRenderer> ().color = defaultTint;
 	}
 
+	// Animation callbacks
+
 	public void ReceivingDamageAnimationDone() {
 		if (this.Health <= 0) {
-			Object.Destroy (gameObject);
+			dyingExplosionSound.Play ();
+			Object.Destroy (gameObject, t: dyingExplosionSound.clip.length);
 		}
+	}
+
+	public void AnimationShotFired() {
+		unitUnderAttack.TakeDamage(this.Attack);
+		unitUnderAttack = null;
 	}
 }
