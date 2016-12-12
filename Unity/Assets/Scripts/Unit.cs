@@ -13,6 +13,7 @@ public class Unit : MonoBehaviour {
 	public int MaxHealth;
 	public Faction Faction;
 	public bool Dirty = false;
+	public AudioSource shootingSound;
 
 	Transform shipSprite;
 	Text healthIndicator;
@@ -58,6 +59,7 @@ public class Unit : MonoBehaviour {
 	public void Fight(Unit other) {
 		// FIXME: need a way to communicate battle outcome with the GameController (to display stats, messages, etc.)
 		anim.Play("UnitAttacking");
+		shootingSound.Play ();
 		other.TakeDamage(this.Attack);
 	}
 
