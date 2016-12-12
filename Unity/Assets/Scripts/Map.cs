@@ -61,8 +61,8 @@ public class Map : MonoBehaviour {
 		unitsOfFaction.Add (Faction.HUMAN, new HashSet<Unit> ());
 		unitsOfFaction.Add (Faction.SYNTH, new HashSet<Unit> ());
 
-		this.Width = ScalingFactor * 8;
-		this.Height = ScalingFactor * 8;
+		this.Width = ScalingFactor * 12;
+		this.Height = ScalingFactor * 6;
 		unitsContainer = transform.Find ("Units");
 		overlayContainer = transform.Find ("Overlay");
 		gridContainer = transform.Find ("Grid");
