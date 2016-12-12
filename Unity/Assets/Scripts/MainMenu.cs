@@ -25,7 +25,8 @@ public class MainMenu : MonoBehaviour {
 	}
 
 	public void LoadCredits() {
-		
+		SceneManager.LoadScene ("Credits");
+		Tracking.instance.TrackEvent ("Credits button pressed", "null");
 	}
 
 	public void ExitGame() {

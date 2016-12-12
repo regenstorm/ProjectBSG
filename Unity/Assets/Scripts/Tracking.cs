@@ -4,31 +4,26 @@ using MySql.Data.MySqlClient;
 
 public class Tracking : MonoBehaviour {
 
+	const string DeviceUniqueIdentifierKey = "DeviceUniqueIdentifierKey";
+	private MySqlConnection connection;
 
-	MySqlConnection connection;
+	public static Tracking instance;
 
-	Tracking() {
-		var server = "localhost";
-		var database = "test";
-		var  uid = "root";
-		var password = "12345";			var connectionString = "SERVER=" + server + ";" + "DATABASE=" + 
+	public void Awake() {
+		if (instance == null) {
+			instance = this;
+		} 
+	}
+
+	void Start () {
+		var server = "104.199.106.222";
+		var database = "bsg_analytics";
+		var uid = "root";
+		var password = "1234";			
+		var connectionString = "SERVER=" + server + ";" + "DATABASE=" + 
 			database + ";" + "UID=" + uid + ";" + "PASSWORD=" + password + ";";
 
 		connection = new MySqlConnection(connectionString);
-	}
-
-	//Constructor
-	//Initialize values
-
-	void Start () {
-		Main ();
-	}
-
-	public static void Main()
-	{
-		var test = new Tracking();
-		test.Insert();
-
 	}
 
 	private bool OpenConnection()
@@ -40,15 +35,11 @@ public class Tracking : MonoBehaviour {
 		}
 		catch (MySqlException ex)
 		{
-			//When handling errors, you can your application's response based 
-			//on the error number.
-			//The two most common error numbers when connecting are as follows:
-			//0: Cannot connect to server.
-			//1045: Invalid user name and/or password.
+			Debug.Log("Unable to open connection: " + ex);
 			switch (ex.Number)
 			{
 			case 0:
-				System.Console.WriteLine("Cannot connect to server.  Contact administrator");
+				System.Console.WriteLine("Cannot connect to server. Contact administrator");
 				break;
 
 			case 1045:
@@ -62,33 +53,36 @@ public class Tracking : MonoBehaviour {
 	//Close connection
 	private bool CloseConnection()
 	{
-		try
-		{
+		try {
 			connection.Close();
 			return true;
 		}
-		catch (MySqlException ex)
-		{
+		catch (MySqlException ex) {
 			System.Console.WriteLine(ex.Message);
 			return false;
 		}
 	}
 
-	public void Insert()
+	public void TrackEvent(string eventType, string value)
 	{
-		string query = "INSERT INTO game (abc) VALUES('55')";
-
-		//open connection
-		if (this.OpenConnection() == true)
-		{
-			//create command and assign the query and connection from the constructor
-			MySqlCommand cmd = new MySqlCommand(query, connection);
-
-			//Execute command
-			cmd.ExecuteNonQuery();
-
-			//close connection
-			this.CloseConnection();
-		}
+		Debug.Log ("Tracking event: " + eventType + " of value: " + value);
+//		string query = "INSERT INTO game (abc) VALUES('55')";
+//
+//		if (this.OpenConnection() != true) {
+//			Debug.Log ("Unable to insert a record: ");
+//		}
+//		
+//		MySqlCommand cmd = new MySqlCommand(query, connection);
+//		cmd.ExecuteNonQuery();
+//		this.CloseConnection();
 	}
+//		
+//	private string GetLocalMachineUUID() {
+//		string deviceUniquieIdentifier = PlayerPrefs.GetString (DeviceUniqueIdentifierKey);
+//		if (string.IsNullOrEmpty(deviceUniquieIdentifier)) {
+//			deviceUniquieIdentifier = SystemInfo.deviceUniqueIdentifier;
+//			PlayerPrefs.SetString (DeviceUniqueIdentifierKey, deviceUniquieIdentifier);
+//		}
+//		return deviceUniquieIdentifier;
+//	}
 }
