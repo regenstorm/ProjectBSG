@@ -10,8 +10,11 @@ public class MusicManager : MonoBehaviour {
 		MainMenu,
 		Battle,
 		BattleLost,
-		BattleWon
+		BattleWon,
+		NoMusic
 	}
+
+	private MusicTheme currentTune = MusicTheme.NoMusic;
 
 	public static MusicManager instance;
 	private AudioSource audioSource;
@@ -39,6 +42,9 @@ public class MusicManager : MonoBehaviour {
 	/// Stops the previous theme and starts the new one.
 	/// </summary>
 	public void Play(MusicTheme theme) {
+		if (currentTune == theme) {
+			return;
+		}
 		audioSource.Stop ();
 		switch(theme) {
 			case MusicTheme.MainMenu: 	this.audioSource.clip = mainMenuMusic; break;
@@ -46,6 +52,7 @@ public class MusicManager : MonoBehaviour {
 			case MusicTheme.BattleLost: this.audioSource.clip = battleLostMusic; break;
 			case MusicTheme.BattleWon: 	this.audioSource.clip = battleWonMusic; break;
 		}
+		currentTune = theme;
 		audioSource.Play ();
 	}
 			
