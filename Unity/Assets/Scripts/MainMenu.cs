@@ -14,6 +14,8 @@ public class MainMenu : MonoBehaviour {
 		newGameButton.onClick.AddListener (NewGame);
 		exitGameButton.onClick.AddListener (ExitGame);
 		creditsButton.onClick.AddListener (LoadCredits);
+
+		MusicManager.instance.Play (MusicManager.MusicTheme.MainMenu);
 	}
 
 	public void NewGame() {

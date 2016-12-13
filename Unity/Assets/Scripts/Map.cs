@@ -86,6 +86,7 @@ public class Map : MonoBehaviour {
 		PlaceUnits ();
 		UpdateFactionIndicator ();
 
+		MusicManager.instance.Play (MusicManager.MusicTheme.Battle);
 		NextTurn ();
 	}
 
