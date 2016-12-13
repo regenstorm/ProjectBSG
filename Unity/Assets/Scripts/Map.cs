@@ -148,7 +148,7 @@ public class Map : MonoBehaviour {
 		    && gameState != GameState.IDLE
 		    && gameState != GameState.ATTACK_TILE_SELECTION) 
 		{
-			print (gameState);
+//			print (gameState);
 			return;
 		}
 

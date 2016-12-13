@@ -36,6 +36,7 @@ public class AIPlayer
 		}
 
 		var unit = iterator.Current;
+//		UnityEngine.Debug.Log (unit);
 		map.SelectUnit (unit);
 
 		AttackWeakestEnemyInRangeOf (unit, then: (attackMade) => {
@@ -46,12 +47,17 @@ public class AIPlayer
 			var nearestEnemy = map.NearestEnemyTo (unit);
 			if (nearestEnemy) {
 				// find the nearest node on the path leading to this enemy and move to that node
-				var path = pathFinder.BestPathTowards(
+				var path = pathFinder.Path(
 					unit.transform.localPosition, 
 					nearestEnemy.transform.localPosition,
-					map.AttackableNeighbors,
-					unit.MoveRange - 1
+					map.AttackableNeighbors
 				);
+
+				if (path.Count() <= unit.MoveRange) {
+					path = path.Take(path.Count() - 1);
+				} else {
+					path = path.Take(unit.MoveRange - 1);
+				}
 				
 				map.MoveUnitAlongPath (
 					unit,
@@ -64,7 +70,7 @@ public class AIPlayer
 	}
 
 	private void ControlNextUnit(IEnumerator<Unit> iterator) {
-		UnityEngine.Debug.Log("ending");
+//		UnityEngine.Debug.Log("ending");
 		map.EndSelectedUnitTurn ();
 		ControlUnit (iterator);
 	}
@@ -81,12 +87,12 @@ public class AIPlayer
 				attacker: unit, 
 				receiver: weakest, 
 				then: () => {
-					then(true);
+					then (true);
 				}
-			).Execute();
+			).Execute ();
+		} else {
+			then (false);
 		}
-
-		then (false);
 	}
 
 	private Unit findWeakestUnit(IEnumerable<Unit> units) {
