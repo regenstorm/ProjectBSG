@@ -92,8 +92,7 @@ public class Unit : MonoBehaviour {
 
 	public void EndTurn() {
 		this.Dirty = true;
-		var grayTint = new Color (0.5f, 0.5f, 0.5f);
-		shipSprite.GetComponent<SpriteRenderer> ().color = grayTint;
+		shipSprite.GetComponent<SpriteRenderer> ().color -= new Color(0.15f,0.15f,0.15f,0f);
 	}
 
 	public void ResetTurn() {
