@@ -72,6 +72,8 @@ public class Map : MonoBehaviour {
 		GenerateGrid ();
 		PlaceUnits ();
 		UpdateFactionIndicator ();
+
+		MusicManager.instance.Play (MusicManager.MusicTheme.Battle);
 	}
 
 	void PlaceUnits ()
