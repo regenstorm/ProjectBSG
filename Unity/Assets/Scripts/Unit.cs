@@ -69,6 +69,11 @@ public class Unit : MonoBehaviour {
 		int damage = (int)((enemyAttack - this.Defense) * Random.Range (0.5f, 1.5f));
 		if (damage > 0) {
 			this.Health -= damage;
+			if (this.Faction == Faction.HUMAN) {
+				BattleController.Instance.synthsDamageDealt += damage;
+			} else {
+				BattleController.Instance.humansDamageDealt += damage;
+			}
 			if (this.Health <= 0) {
 				map.DeregisterUnit (this);
 			} 
@@ -104,6 +109,11 @@ public class Unit : MonoBehaviour {
 
 	public void ReceivingDamageAnimationDone() {
 		if (this.Health <= 0) {
+			if (this.Faction == Faction.HUMAN) {
+				BattleController.Instance.humansDestroyed += 1;
+			} else {
+				BattleController.Instance.synthsDestroyed += 1;
+			}
 			dyingExplosionSound.Play ();
 			Object.Destroy (gameObject, t: dyingExplosionSound.clip.length);
 		}

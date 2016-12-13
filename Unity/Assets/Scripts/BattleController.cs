@@ -31,6 +31,11 @@ public enum GameEvent {
 public class BattleController
 {
 	public Faction whoWon;
+	public int turnNumber = 0;
+	public int synthsDestroyed = 0;
+	public int humansDestroyed = 0;
+	public int humansDamageDealt = 0;
+	public int synthsDamageDealt = 0;
 	private static BattleController _instance;
 	public static BattleController Instance {
 		get {
