@@ -54,9 +54,9 @@ public class PathFinder<NodeType>
 
 		var path = new List<NodeType> ();
 
-		foreach (var pair in comeFrom) {
-			UnityEngine.Debug.LogFormat("{0} = {1}", pair.Key, pair.Value);
-		}
+//		foreach (var pair in comeFrom) {
+////			UnityEngine.Debug.LogFormat("{0} = {1}", pair.Key, pair.Value);
+//		}
 		// backtrack the dictionary to build the path
 		var c = pos;
 		path.Add (c);
