@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Linq;
+using System;
 
 public class Unit : MonoBehaviour {
 	public int MoveRange;
@@ -21,26 +22,32 @@ public class Unit : MonoBehaviour {
 	Color defaultTint;
 	Animation anim;
 	Transform selectionIndicator;
-	Unit unitUnderAttack;
 
 	Map map;
 
-	// Use this for initialization
-	void Start () {
-		anim = GetComponent<Animation> ();
+	// very bad implementation of EventEmitter/observer pattern
+	Action onShotFired;
+	Action onDyingAnimationDone;
+	Action onReceivingDamageAnimationDone;
 
-		Transform healthText;
+	void Awake() {
 		shipSprite = transform.FindChild ("ship_sprite");
+		anim = GetComponent<Animation> ();
+		
+		Transform healthText;
 		healthText = transform.Find ("Canvas/Health Indicator");
 		healthIndicator = healthText.GetComponent <Text> ();
 		healthIndicator.text = Health.ToString();
 
+		selectionIndicator = transform.Find ("SelectionIndicator");
+	}
+
+	// Use this for initialization
+	void Start () {
 		map = GameObject.Find ("BattleGround").GetComponent<Map> ();
+
 		defaultTint = Map.FactionColor (Faction);
 		ResetTint ();
-
-		selectionIndicator = transform.Find ("SelectionIndicator");
-
 		map.RegisterUnit (this);
 	}
 
@@ -58,15 +65,21 @@ public class Unit : MonoBehaviour {
 		anim.Stop ("UnitSelection");
 	}
 
-	public void Fight(Unit other) {
+	public void PlayAttackAnimation(Action onShotFired) {
 		// FIXME: need a way to communicate battle outcome with the GameController (to display stats, messages, etc.)
 		anim.Play("UnitAttacking");
 		shootingSound.Play ();
-		unitUnderAttack = other;
+		this.onShotFired = onShotFired;
 	}
 
-	public void TakeDamage (int enemyAttack){
-		int damage = (int)((enemyAttack - this.Defense) * Random.Range (0.5f, 1.5f));
+	public void PlayReceivingDamageAnimation(Action onAnimationDone) {
+		anim.Play("UnitReceivingDamage");
+	}
+
+	public void TakeDamage (int damage, Action onReceivingAnimationDone, Action onDyingAnimationDone) {
+		this.onReceivingDamageAnimationDone = onReceivingAnimationDone;
+		this.onDyingAnimationDone = onDyingAnimationDone;
+
 		if (damage > 0) {
 			this.Health -= damage;
 			if (this.Health <= 0) {
@@ -78,7 +91,7 @@ public class Unit : MonoBehaviour {
 			}
 		}
 
-		anim.Play("UnitReceivingDamage");
+		anim.Play ("UnitReceivingDamage");
 	}
 
 	public bool IsFriendlyWith(Unit other) {
@@ -103,14 +116,24 @@ public class Unit : MonoBehaviour {
 	// Animation callbacks
 
 	public void ReceivingDamageAnimationDone() {
+		if (onReceivingDamageAnimationDone != null)
+			onReceivingDamageAnimationDone();
+		
 		if (this.Health <= 0) {
 			dyingExplosionSound.Play ();
-			Object.Destroy (gameObject, t: dyingExplosionSound.clip.length);
+			Invoke ("DieAnimationDone", time: dyingExplosionSound.clip.length);
 		}
 	}
 
 	public void AnimationShotFired() {
-		unitUnderAttack.TakeDamage(this.Attack);
-		unitUnderAttack = null;
+		if (onShotFired != null)
+			onShotFired();
+	}
+
+	public void DieAnimationDone() {
+		UnityEngine.Object.Destroy (gameObject);
+
+		if (onDyingAnimationDone != null)
+			onDyingAnimationDone ();
 	}
 }

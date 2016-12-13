@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 
 public class PathFinder<NodeType>
@@ -53,12 +54,17 @@ public class PathFinder<NodeType>
 
 		var path = new List<NodeType> ();
 
+		foreach (var pair in comeFrom) {
+			UnityEngine.Debug.LogFormat("{0} = {1}", pair.Key, pair.Value);
+		}
 		// backtrack the dictionary to build the path
 		var c = pos;
 		path.Add (c);
 		while (true) {
-			var parent = comeFrom [c];
-			if (parent.Equals (start)) {
+			NodeType parent;
+			var ok = comeFrom.TryGetValue (c, out parent);
+
+			if (!ok || parent.Equals (start)) {
 				break;
 			} else {
 				path.Insert (0, parent);
@@ -67,6 +73,19 @@ public class PathFinder<NodeType>
 		}
 
 		return path;
+	}
+
+	/**
+	 * Find the best path from `start` to get as close as possible to `dest`, within a limited number of steps
+	 */
+	public IEnumerable<NodeType> BestPathTowards(NodeType start, NodeType pos, GraphNeighbors graphNeighbors, int maxSteps) {
+		var path = Path (start, pos, graphNeighbors);
+		UnityEngine.Debug.LogFormat("best path from {0} toward {1}: [{2}] {3}",
+			start, 
+			pos, 
+			string.Join(", ", Array.ConvertAll(path.ToArray(), i => i.ToString())),
+			path.Count());
+		return path.Take (maxSteps);
 	}
 
 	public Dictionary<NodeType, int> DistancesToNode(NodeType node, GraphNeighbors graph) {
@@ -80,5 +99,6 @@ public class PathFinder<NodeType>
 				acc[neighbor] = 1 + acc[current];
 			});
 	}
+
 }
 
