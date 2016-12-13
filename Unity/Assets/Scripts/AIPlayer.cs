@@ -21,39 +21,58 @@ public class AIPlayer
 	//   if there are enemy units in attack range, choose one with lowest health and attack it
 	//   else choose the closest enemy and move as close as possible to it
 
-	public IEnumerator DoTurn(IEnumerable<Unit> units) {
-		foreach (Unit u in units) {
-			yield return new WaitForSeconds(3);
-			ControlUnit (u);
-		}
+	public void DoTurn(IEnumerable<Unit> units) {
+		ControlUnit (units.GetEnumerator ());
+
+//		foreach (Unit u in units) {
+//			yield return new WaitForSeconds(0.4f);
+//			ControlUnit (u);
+//		}
 	}
 
-	public void ControlUnit(Unit unit) {
-		map.SelectUnit (unit);
-
-		var attackMade = AttackWeakestEnemyInRangeOf (unit);
-		if (attackMade) {
+	public void ControlUnit(IEnumerator<Unit> iterator) {
+		if (!iterator.MoveNext ()) {
 			return;
 		}
 
-		var nearestEnemy = map.NearestEnemyTo (unit);
-		if (nearestEnemy) {
-			// find the nearest node on the path leading to this enemy and move to that node
-			var path = pathFinder.BestPathTowards(
-				unit.transform.localPosition, 
-				nearestEnemy.transform.localPosition,
-				map.AttackableNeighbors,
-				unit.MoveRange - 1
-			);
+		var unit = iterator.Current;
+		map.SelectUnit (unit);
 
-			map.MoveUnitAlongPath (unit, path, then: () => this.AttackWeakestEnemyInRangeOf(unit));
-		}
+		AttackWeakestEnemyInRangeOf (unit, then: (attackMade) => {
+			if (attackMade) {
+				ControlNextUnit(iterator);
+			}
+
+			var nearestEnemy = map.NearestEnemyTo (unit);
+			if (nearestEnemy) {
+				// find the nearest node on the path leading to this enemy and move to that node
+				var path = pathFinder.BestPathTowards(
+					unit.transform.localPosition, 
+					nearestEnemy.transform.localPosition,
+					map.AttackableNeighbors,
+					unit.MoveRange - 1
+				);
+				
+				map.MoveUnitAlongPath (
+					unit,
+					path,
+					then: () => this.AttackWeakestEnemyInRangeOf(unit, then: (_) => {
+						ControlNextUnit(iterator);
+					}));
+			}
+		});
+	}
+
+	private void ControlNextUnit(IEnumerator<Unit> iterator) {
+		UnityEngine.Debug.Log("ending");
+		map.EndSelectedUnitTurn ();
+		ControlUnit (iterator);
 	}
 
 	/**
 	 * Return whether an attack has been made.
 	 */
-	private bool AttackWeakestEnemyInRangeOf(Unit unit) {
+	private void AttackWeakestEnemyInRangeOf(Unit unit, Action<Boolean> then) {
 		var inRange = map.EnemiesInRange (unit);
 
 		if (inRange.Count () > 0) {
@@ -61,12 +80,13 @@ public class AIPlayer
 			new AttackExecutor (
 				attacker: unit, 
 				receiver: weakest, 
-				then: () => map.EndSelectedUnitTurn ()
+				then: () => {
+					then(true);
+				}
 			).Execute();
-			return true;
 		}
 
-		return false;
+		then (false);
 	}
 
 	private Unit findWeakestUnit(IEnumerable<Unit> units) {

@@ -57,7 +57,8 @@ public class Map : MonoBehaviour {
 		UpdateFactionIndicator ();
 
 		if (currentFaction == Faction.HUMAN) {
-			aiPlayerDoTurnCoroutine = StartCoroutine(aiPlayer.DoTurn (UnitsOfFaction(currentFaction)));
+			//			aiPlayerDoTurnCoroutine = StartCoroutine(aiPlayer.DoTurn (UnitsOfFaction(currentFaction)));
+			aiPlayer.DoTurn (UnitsOfFaction(currentFaction));
 		}
 	}
 
@@ -87,8 +88,8 @@ public class Map : MonoBehaviour {
 		PlaceUnits ();
 		UpdateFactionIndicator ();
 
-		MusicManager.instance.Play (MusicManager.MusicTheme.Battle);
 		NextTurn ();
+		MusicManager.instance.Play (MusicManager.MusicTheme.Battle);
 	}
 
 	void PlaceUnits ()
