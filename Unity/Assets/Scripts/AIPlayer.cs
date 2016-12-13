@@ -42,7 +42,7 @@ public class AIPlayer
 			var path = pathFinder.BestPathTowards(
 				unit.transform.localPosition, 
 				nearestEnemy.transform.localPosition,
-				map.MoveableNeighbors,
+				map.AttackableNeighbors,
 				unit.MoveRange - 1
 			);
 
