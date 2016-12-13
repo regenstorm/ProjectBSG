@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
+using System;
 
 public class Map : MonoBehaviour {
 	public int ScalingFactor = 2;
@@ -18,11 +19,13 @@ public class Map : MonoBehaviour {
 	private Transform overlayContainer;
 	private Transform gridContainer;
 	private Unit selectedUnit;
-	private PathFinder<Vector3> pathFinder;
+	public PathFinder<Vector3> pathFinder;
 
 	private GameState gameState = GameState.IDLE;
-	private Faction currentFaction = Faction.SYNTH;
+	private Faction currentFaction = Faction.HUMAN;
 	private Dictionary<Faction, HashSet<Unit>> unitsOfFaction;
+	private AIPlayer aiPlayer;
+	private Coroutine aiPlayerDoTurnCoroutine;
 
 	public void RegisterUnit(Unit unit) {
 		unitsOfFaction [unit.Faction].Add (unit);
@@ -41,12 +44,20 @@ public class Map : MonoBehaviour {
 	}
 
 	private void NextTurn() {
+		if (aiPlayerDoTurnCoroutine != null) {
+			StopCoroutine (aiPlayerDoTurnCoroutine);
+		}
+
 		currentFaction = NextFaction();
 		foreach (var unit in unitsOfFaction[currentFaction]) {
 			unit.ResetTurn ();
 		}
 		BattleController.Instance.turnNumber++;
 		UpdateFactionIndicator ();
+
+		if (currentFaction == Faction.HUMAN) {
+			aiPlayerDoTurnCoroutine = StartCoroutine(aiPlayer.DoTurn (UnitsOfFaction(currentFaction)));
+		}
 	}
 
 	private void UpdateFactionIndicator() {
@@ -68,10 +79,14 @@ public class Map : MonoBehaviour {
 		overlayContainer = transform.Find ("Overlay");
 		gridContainer = transform.Find ("Grid");
 
+		aiPlayer = new AIPlayer (this, pathFinder);
+
 		FillColliderBox ();
 		GenerateGrid ();
 		PlaceUnits ();
 		UpdateFactionIndicator ();
+
+		NextTurn ();
 	}
 
 	void PlaceUnits ()
@@ -121,24 +136,52 @@ public class Map : MonoBehaviour {
 		}
 	}
 
-	void Update () {
-	}
-
 	void OnMouseDown() {
+		if (currentFaction == Faction.HUMAN) {
+			return;
+		}
+
+		if (gameState != GameState.MOVE_TILE_SELECTION
+		    && gameState != GameState.IDLE
+		    && gameState != GameState.ATTACK_TILE_SELECTION) 
+		{
+			print (gameState);
+			return;
+		}
+
 		var mousePos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
 		var clickedTile = RoundPosition (mousePos - transform.position);
 		var unit = UnitAtPosition(clickedTile);
 
 		if (selectedUnit) {
 			if (gameState == GameState.MOVE_TILE_SELECTION) {
-				MoveUnit (selectedUnit, clickedTile);
+				if (UnitCanMoveToPosition (selectedUnit, clickedTile)) {
+					Action showAttackOverlay = () => {
+						// FIXME: using Count() could be slow
+						if (EnemiesInRange (selectedUnit).Count () > 0) {
+							DrawLegalAttacksOverlay ();
+							DrawAttackTargetIndicators ();
+							gameState = GameState.ATTACK_TILE_SELECTION;
+						} else {
+							EndSelectedUnitTurn ();
+						}
+					};
+
+					MoveUnit (selectedUnit, clickedTile, then: showAttackOverlay);
+				} else {
+					DeselectCurrentUnit ();
+					gameState = GameState.IDLE;
+				}
 			}
 
 			if (gameState == GameState.ATTACK_TILE_SELECTION) {
 				// check if a valid attack target has been chosen
 				if (unit && UnitIsLegalAttackTarget (unit)) {
-					selectedUnit.Fight (unit);
-					EndSelectedUnitTurn ();
+					new AttackExecutor (
+						attacker: selectedUnit,
+						receiver: unit,
+						then: () => EndSelectedUnitTurn ()
+					).Execute();
 				}
 			}
 		} else if (unit) {
@@ -146,7 +189,7 @@ public class Map : MonoBehaviour {
 		}
 	}
 
-	private void EndSelectedUnitTurn() {
+	public void EndSelectedUnitTurn() {
 		selectedUnit.EndTurn ();
 		DeselectCurrentUnit ();
 		gameState = GameState.IDLE;
@@ -219,19 +262,18 @@ public class Map : MonoBehaviour {
 		ClearLegalMovesOverlay ();
 	}
 
-	public void MoveUnit(Unit unit, Vector3 pos) {
-		ClearLegalMovesOverlay ();
-
-		if (UnitCanMoveToPosition (selectedUnit, pos)) {
-			gameState = GameState.MOVING;
-			StartCoroutine (MoveUnitInSequence (unit, pathFinder.Path (selectedUnit.transform.localPosition, pos, this.MoveableNeighbors)));
-		} else {
-			DeselectCurrentUnit ();
-			gameState = GameState.IDLE;
-		}
+	public void MoveUnit(Unit unit, Vector3 pos, Action then) {
+		var path = pathFinder.Path (selectedUnit.transform.localPosition, pos, this.MoveableNeighbors);
+		MoveUnitAlongPath (unit, path, then);
 	}
 
-	private IEnumerator MoveUnitInSequence(Unit unit, IEnumerable<Vector3> path) {
+	public void MoveUnitAlongPath(Unit unit, IEnumerable<Vector3> path, Action then) {
+		ClearLegalMovesOverlay ();
+		gameState = GameState.MOVING;
+		StartCoroutine (MoveUnitInSequence (unit, path, then));
+	}
+
+	private IEnumerator MoveUnitInSequence(Unit unit, IEnumerable<Vector3> path, Action then) {
 		// FIXME: Do some kind of movement animation here
 		// https://docs.unity3d.com/ScriptReference/Vector3.MoveTowards.html
 		foreach (var step in path) {
@@ -239,14 +281,7 @@ public class Map : MonoBehaviour {
 			yield return new WaitForSeconds(0.2f);
 		}
 
-		// FIXME: using Count() could be slow
-		if (EnemiesInRange (unit).Count () > 0) {
-			DrawLegalAttacksOverlay ();
-			DrawAttackTargetIndicators ();
-			gameState = GameState.ATTACK_TILE_SELECTION;
-		} else {
-			EndSelectedUnitTurn ();
-		}
+		then.Invoke ();
 	}
 
 	public Vector3 RoundPosition(Vector3 pos) {
@@ -294,11 +329,11 @@ public class Map : MonoBehaviour {
 
 	public void ClearLegalMovesOverlay() {
 		foreach (Transform child in overlayContainer) {
-			Object.Destroy (child.gameObject);
+			UnityEngine.Object.Destroy (child.gameObject);
 		}
 	}
 
-	private IEnumerable<Unit> EnemiesInRange(Unit unit) {
+	public IEnumerable<Unit> EnemiesInRange(Unit unit) {
 		return (from cell in LegalStationaryAttackMoves (unit)
 		  let other = UnitAtPosition (cell)
 		  where other != null && !BattleController.Instance.FriendsWith (other.Faction, unit.Faction)
@@ -345,14 +380,36 @@ public class Map : MonoBehaviour {
 			select pair.Key;
 	}
 
-	private IEnumerable<Vector3> AttackableNeighbors(Vector3 pos) {
+	public IEnumerable<Vector3> AllNeighbors(Vector3 pos) {
+		return Neighbors (pos, (current, neighbors) => true);
+	}
+
+	public IEnumerable<Vector3> AttackableNeighbors(Vector3 pos) {
 		return Neighbors (pos, (current, neighbor) => {
 			var other = UnitAtPosition (neighbor);
 			return other == null || !BattleController.Instance.FriendsWith (selectedUnit.Faction, other.Faction);
 		});
 	}
 
-	private IEnumerable<Vector3> MoveableNeighbors(Vector3 pos) {
+	public IEnumerable<Vector3> MoveableNeighbors(Vector3 pos) {
 		return Neighbors (pos, (current, neighbor) => UnitAtPosition (neighbor) == null);
+	}
+
+	private struct UnitDistance {
+		public Unit unit;
+		public int distance;
+	}
+
+	public Unit NearestEnemyTo(Unit unit) {
+		var distances = pathFinder.DistancesToNode (unit.transform.localPosition, this.AllNeighbors);
+
+		return UnitsOfFaction (NextFaction ())
+			.Select ((u, i) => new UnitDistance {
+				unit = u,
+				distance = distances [u.transform.localPosition]
+			})
+			.OrderBy(ud => ud.distance)
+			.Select(ud => ud.unit)
+			.FirstOrDefault();
 	}
 }
