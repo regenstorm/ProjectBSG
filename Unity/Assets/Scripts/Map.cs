@@ -45,12 +45,13 @@ public class Map : MonoBehaviour {
 		foreach (var unit in unitsOfFaction[currentFaction]) {
 			unit.ResetTurn ();
 		}
+		BattleController.Instance.turnNumber++;
 		UpdateFactionIndicator ();
 	}
 
 	private void UpdateFactionIndicator() {
 		var indicator = GameObject.Find ("FactionIndicator").GetComponent<Text> ();
-		indicator.text = currentFaction.ToString();
+		indicator.text = currentFaction.ToString() + " Turn: " + (BattleController.Instance.turnNumber / 2 +1).ToString();
 		indicator.color = FactionColor (currentFaction);
 	}
 
@@ -152,6 +153,7 @@ public class Map : MonoBehaviour {
 
 		// check if battle is over
 		if (unitsOfFaction[NextFaction()].Count() == 0) {
+			BattleController.Instance.turnNumber++;
 			ConcludeBattle (whoWon: currentFaction);
 			return;
 		}
@@ -165,6 +167,7 @@ public class Map : MonoBehaviour {
 
 	private void ConcludeBattle(Faction whoWon) {
 		BattleController.Instance.whoWon = whoWon;
+		BattleController.Instance.turnNumber = BattleController.Instance.turnNumber / 2 + 1;
 		UnityEngine.SceneManagement.SceneManager.LoadScene ("BattleConclusion");
 	}
 
