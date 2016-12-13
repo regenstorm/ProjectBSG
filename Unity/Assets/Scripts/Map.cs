@@ -14,6 +14,7 @@ public class Map : MonoBehaviour {
 	public GameObject gridCellPrefab;
 	public GameObject AttackIndicatorPrefab;
 	public GameObject UnitPrefab;
+	public Tutor tutor;
 
 	private Transform unitsContainer;
 	private Transform overlayContainer;
@@ -158,6 +159,8 @@ public class Map : MonoBehaviour {
 			if (gameState == GameState.MOVE_TILE_SELECTION) {
 				if (UnitCanMoveToPosition (selectedUnit, clickedTile)) {
 					Action showAttackOverlay = () => {
+						tutor.UnitMoved();
+
 						// FIXME: using Count() could be slow
 						if (EnemiesInRange (selectedUnit).Count () > 0) {
 							DrawLegalAttacksOverlay ();
@@ -181,12 +184,16 @@ public class Map : MonoBehaviour {
 					new AttackExecutor (
 						attacker: selectedUnit,
 						receiver: unit,
-						then: () => EndSelectedUnitTurn ()
+						then: () => {
+							tutor.UnitAttacked ();
+							EndSelectedUnitTurn ();
+						}
 					).Execute();
 				}
 			}
 		} else if (unit) {
 			SelectUnit (unit);
+			tutor.UnitSelected ();
 		}
 	}
 
