@@ -1,8 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class ShowWhoWon : MonoBehaviour {
+
+	public Button backButton;
 
 	// Use this for initialization
 	void Start () {
@@ -17,6 +20,12 @@ public class ShowWhoWon : MonoBehaviour {
 			MusicManager.instance.Play (MusicManager.MusicTheme.BattleLost);
 			break;
 		}
+
+		Debug.Log (backButton);
+		backButton.onClick.AddListener(() => { 
+			Debug.Log("Back button pressed");
+			SceneManager.LoadScene("MainMenu");}
+		);
 	}
 	
 	// Update is called once per frame
