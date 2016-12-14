@@ -26,7 +26,7 @@ public class Map : MonoBehaviour {
 	private Faction currentFaction = Faction.HUMAN;
 	private Dictionary<Faction, HashSet<Unit>> unitsOfFaction;
 	private AIPlayer aiPlayer;
-	private Coroutine aiPlayerDoTurnCoroutine;
+//	private Coroutine aiPlayerDoTurnCoroutine;
 
 	public void RegisterUnit(Unit unit) {
 		unitsOfFaction [unit.Faction].Add (unit);
@@ -45,9 +45,9 @@ public class Map : MonoBehaviour {
 	}
 
 	private void NextTurn() {
-		if (aiPlayerDoTurnCoroutine != null) {
-			StopCoroutine (aiPlayerDoTurnCoroutine);
-		}
+//		if (aiPlayerDoTurnCoroutine != null) {
+//			StopCoroutine (aiPlayerDoTurnCoroutine);
+//		}
 
 		currentFaction = NextFaction();
 		foreach (var unit in unitsOfFaction[currentFaction]) {
