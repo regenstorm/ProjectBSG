@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
 
 public class Tutor : MonoBehaviour {
 	public UnityEngine.UI.Text TutorialText;
@@ -19,6 +20,7 @@ public class Tutor : MonoBehaviour {
 
 	public void Hide() {
 		TutorialText.enabled = false;
+		GetComponent<Image> ().enabled = false;
 	}
 
 	public void UnitSelected() {
