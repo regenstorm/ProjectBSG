@@ -115,7 +115,7 @@ public class Unit : MonoBehaviour {
 	}
 
 	private void UpdateHealthIndicator() {
-		healthIndicator.text = this.Health.ToString () + " " + this.name;
+		healthIndicator.text = this.Health.ToString ();
 	}
 
 	// Animation callbacks
