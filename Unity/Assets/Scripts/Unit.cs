@@ -34,11 +34,7 @@ public class Unit : MonoBehaviour {
 		shipSprite = transform.FindChild ("ship_sprite");
 		anim = GetComponent<Animation> ();
 		
-		Transform healthText;
-		healthText = transform.Find ("Canvas/Health Indicator");
-		healthIndicator = healthText.GetComponent <Text> ();
-		healthIndicator.text = Health.ToString();
-
+		healthIndicator = transform.Find ("Canvas/Health Indicator").GetComponent <Text> ();
 		selectionIndicator = transform.Find ("SelectionIndicator");
 	}
 
@@ -49,6 +45,7 @@ public class Unit : MonoBehaviour {
 		defaultTint = Map.FactionColor (Faction);
 		ResetTint ();
 		map.RegisterUnit (this);
+		UpdateHealthIndicator ();
 	}
 
 	// Update is called once per frame
@@ -92,7 +89,7 @@ public class Unit : MonoBehaviour {
 			} 
 			else {
 				// FIXME: PLS animation
-				healthIndicator.text = Health.ToString();
+				UpdateHealthIndicator();
 			}
 		}
 
@@ -115,6 +112,10 @@ public class Unit : MonoBehaviour {
 
 	private void ResetTint() {
 		shipSprite.GetComponent<SpriteRenderer> ().color = defaultTint;
+	}
+
+	private void UpdateHealthIndicator() {
+		healthIndicator.text = this.Health.ToString () + " " + this.name;
 	}
 
 	// Animation callbacks
