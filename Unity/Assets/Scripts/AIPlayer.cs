@@ -42,6 +42,7 @@ public class AIPlayer
 		AttackWeakestEnemyInRangeOf (unit, then: (attackMade) => {
 			if (attackMade) {
 				ControlNextUnit(iterator);
+				return;
 			}
 
 			var nearestEnemy = map.NearestEnemyTo (unit);
