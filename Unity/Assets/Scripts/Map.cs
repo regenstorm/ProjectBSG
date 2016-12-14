@@ -41,7 +41,7 @@ public class Map : MonoBehaviour {
 	}
 
 	public static Color FactionColor(Faction faction) {
-		return faction == Faction.SYNTH ? Color.HSVToRGB(0.64f,0.84f,0.6f) : Color.HSVToRGB(0.00f,0.84f,0.6f);
+		return faction == Faction.SYNTH ? new Color32(158, 174, 255, 255) : new Color32(255, 158, 158, 255);//Color.HSVToRGB(0.64f,0.84f,0.6f) : Color.HSVToRGB(0.00f,0.84f,0.6f);
 	}
 
 	private void NextTurn() {
