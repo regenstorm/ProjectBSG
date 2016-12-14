@@ -3,17 +3,13 @@ using System.Collections;
 
 public class Tutor : MonoBehaviour {
 	public UnityEngine.UI.Text TutorialText;
-	public bool Active = true;
-
-	bool unitSelected = false;
-	bool unitMoved = false;
-	bool unitAttacked = false;
+	private bool tutorialDone = false;
 
 	// Use this for initialization
 	void Start () {
 		TutorialText.text = 
-			"Your units are blue and enemy units are red. " +
-			"Touch one of your units to start controlling it.";
+			"Hello commander Copper-42. Your units are blue and enemy units are red. " +
+			"Touch one of your units to start controlling it. I believe you can lead us all through this menace!";
 	}
 	
 	// Update is called once per frame
@@ -22,9 +18,15 @@ public class Tutor : MonoBehaviour {
 	}
 
 	public void Hide() {
+		TutorialText.enabled = false;
 	}
 
 	public void UnitSelected() {
+		if (tutorialDone) {
+			Hide ();
+			return;
+		}
+
 		TutorialText.text = 
 			"Great! Now you can see some blue and red tiles. " + 
 			"The blue ones you can move to and the red ones you can attack. " + 
@@ -42,5 +44,6 @@ public class Tutor : MonoBehaviour {
 			"Your unit becomes deactivated after the move. " + 
 			"Select another unit and continue. Remember, you can " + 
 			"make a unit stay where it is by tapping on its current tile.";
+		tutorialDone = true;
 	}
 }

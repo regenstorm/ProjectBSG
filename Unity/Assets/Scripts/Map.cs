@@ -26,7 +26,7 @@ public class Map : MonoBehaviour {
 	private Faction currentFaction = Faction.HUMAN;
 	private Dictionary<Faction, HashSet<Unit>> unitsOfFaction;
 	private AIPlayer aiPlayer;
-	private Coroutine aiPlayerDoTurnCoroutine;
+//	private Coroutine aiPlayerDoTurnCoroutine;
 
 	public void RegisterUnit(Unit unit) {
 		unitsOfFaction [unit.Faction].Add (unit);
@@ -45,9 +45,9 @@ public class Map : MonoBehaviour {
 	}
 
 	private void NextTurn() {
-		if (aiPlayerDoTurnCoroutine != null) {
-			StopCoroutine (aiPlayerDoTurnCoroutine);
-		}
+//		if (aiPlayerDoTurnCoroutine != null) {
+//			StopCoroutine (aiPlayerDoTurnCoroutine);
+//		}
 
 		currentFaction = NextFaction();
 		foreach (var unit in unitsOfFaction[currentFaction]) {
@@ -58,7 +58,7 @@ public class Map : MonoBehaviour {
 
 		if (currentFaction == Faction.HUMAN) {
 			//			aiPlayerDoTurnCoroutine = StartCoroutine(aiPlayer.DoTurn (UnitsOfFaction(currentFaction)));
-			aiPlayer.DoTurn (UnitsOfFaction(currentFaction));
+			aiPlayer.DoTurn (unitsOfFaction[currentFaction]);
 		}
 	}
 
@@ -211,7 +211,7 @@ public class Map : MonoBehaviour {
 		}
 
 		// check if player's turn is done
-		var allUnitsUsed = UnitsOfFaction(currentFaction).All (unit => unit.Dirty);
+		var allUnitsUsed = unitsOfFaction[currentFaction].All (unit => unit.Dirty);
 		if (allUnitsUsed) {
 			NextTurn ();
 		}
@@ -233,17 +233,12 @@ public class Map : MonoBehaviour {
 	}
 
 	private IEnumerable<Unit> AllUnits() {
-		var units = new List<Unit> ();
-		foreach (Transform child in unitsContainer) {
-			units.Add (child.GetComponent<Unit> ());
-		}
-		return units;
-	}
-
-	public IEnumerable<Unit> UnitsOfFaction(Faction faction) {
-		return from unit in AllUnits ()
-		       where unit.Faction == faction
-		       select unit;
+		return unitsOfFaction [Faction.SYNTH].Concat (unitsOfFaction[Faction.HUMAN]);
+//		var units = new List<Unit> ();
+//		foreach (Transform child in unitsContainer) {
+//			units.Add (child.GetComponent<Unit> ());
+//		}
+//		return units;
 	}
 
 	public Unit UnitAtPosition(Vector3 pos) {
@@ -412,7 +407,7 @@ public class Map : MonoBehaviour {
 	public Unit NearestEnemyTo(Unit unit) {
 		var distances = pathFinder.DistancesToNode (unit.transform.localPosition, this.AllNeighbors);
 
-		return UnitsOfFaction (NextFaction ())
+		return unitsOfFaction[NextFaction()]
 			.Select ((u, i) => new UnitDistance {
 				unit = u,
 				distance = distances [u.transform.localPosition]
